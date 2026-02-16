@@ -4,12 +4,15 @@ from animus.models import (
     AppraisalVector,
     BehaveResult,
     BehavioralVector,
+    FeelResult,
     MoodVector,
     PersonalityProfile,
     Stimulus,
     TransformationMatrix,
 )
 from animus.behave import behave
+from animus.decay import decay
+from animus.feel import feel
 from animus.building_blocks import (
     AstrologicalSign,
     BuildingBlockLibrary,
@@ -26,12 +29,16 @@ __all__ = [
     "AppraisalVector",
     "BehaveResult",
     "BehavioralVector",
+    "FeelResult",
     "MoodVector",
     "PersonalityProfile",
     "Stimulus",
     "TransformationMatrix",
     # Behave pipeline
     "behave",
+    # Feel / Decay (Phase 3)
+    "feel",
+    "decay",
     # Building blocks (Phase 2)
     "AstrologicalSign",
     "BuildingBlockLibrary",

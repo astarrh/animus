@@ -158,6 +158,14 @@ class BehaveResult:
     deviation_amount: float
 
 
+@dataclass(frozen=True)
+class FeelResult:
+    """Output from Feel mode."""
+
+    mood_delta: MoodVector
+    new_mood: MoodVector
+
+
 def _clamp_bipolar(value: float) -> float:
     return max(-1.0, min(1.0, value))
 
