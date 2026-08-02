@@ -3,15 +3,15 @@
 Takes a personality, stimulus, intensity, and optional mood, and returns
 a behavioral vector describing how the character acts.
 
-Pipeline (from technical_reference.md):
+Pipeline:
   1. appraisal = personality.appraisal_baseline + stimulus.appraisal
   2. modulated_matrix = personality.transform_matrix × appraisal_weights(appraisal)
   3. behavioral_offset = modulated_matrix × mood_vector × personality.susceptibility
   4. personality_output = personality.behavioral_baseline + behavioral_offset
-  5. intensity_scaled = personality_output × intensity + random_variance × (1 - intensity)
-  6. final_output = clamp(intensity_scaled, -1.0, 1.0)
-
-Phase 1: No external pressure. No global bias. No Feel mode.
+  5. gained = personality_output × gain(intensity)
+     where gain = 1 + intensity × (MAX_INTENSITY_GAIN - 1)
+     intensity 0 → current (unamplified) signal; intensity 1 → max gain
+  6. final_output = clamp(gained, -1.0, 1.0)
 """
 
 from __future__ import annotations
@@ -27,6 +27,10 @@ from animus.models import (
     Stimulus,
 )
 
+# At intensity=1.0, personality_output is scaled by this factor.
+# intensity=0.0 leaves the authored signal unchanged (gain 1.0).
+MAX_INTENSITY_GAIN = 4.0
+
 
 def behave(
     personality: PersonalityProfile,
@@ -41,19 +45,21 @@ def behave(
     Args:
         personality: The character's personality profile.
         stimulus: Description of the situation.
-        intensity: How much personality dominates (0.0–1.0).
-            High = personality-consistent. Low = more variance.
+        intensity: Output gain control (0.0–1.0).
+            0.0 = unamplified personality signal (baseline + mood offset).
+            1.0 = maximum gain (see MAX_INTENSITY_GAIN).
         mood: Current mood state. If None, uses resting baseline.
-        rng: Optional random.Random instance for deterministic testing.
+        rng: Accepted for API compatibility; intensity no longer mixes noise,
+            so output is deterministic for the same inputs.
 
     Returns:
         BehaveResult with behavioral_vector, conflict_flag, rigidity_indicator,
         and deviation_amount.
     """
-    if rng is None:
-        rng = random.Random()
+    del rng  # Noise override removed; keep parameter for call-site compatibility.
 
     mood = mood if mood is not None else personality.resting_mood
+    intensity = max(0.0, min(1.0, intensity))
 
     # Step 1: Resolve appraisal
     appraisal = AppraisalVector(
@@ -74,15 +80,12 @@ def behave(
     baseline = personality.behavioral_baseline.to_list()
     personality_output = [baseline[i] + behavioral_offset[i] for i in range(5)]
 
-    # Step 5: intensity scaling with random variance
-    variance = [rng.gauss(0.0, 0.3) for _ in range(5)]
-    intensity_scaled = [
-        personality_output[i] * intensity + variance[i] * (1.0 - intensity)
-        for i in range(5)
-    ]
+    # Step 5: Intensity as output gain (not noise mix)
+    gain = 1.0 + intensity * (MAX_INTENSITY_GAIN - 1.0)
+    gained = [personality_output[i] * gain for i in range(5)]
 
     # Step 6: Clamp to valid range
-    final = BehavioralVector.from_list(intensity_scaled).clamped()
+    final = BehavioralVector.from_list(gained).clamped()
 
     # Compute metadata
     deviation = _deviation(personality.behavioral_baseline, final)

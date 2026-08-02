@@ -10,7 +10,7 @@ from animus.models import (
     Stimulus,
     TransformationMatrix,
 )
-from animus.behave import behave
+from animus.behave import MAX_INTENSITY_GAIN, behave
 from animus.decay import decay
 from animus.feel import feel
 from animus.building_blocks import (
@@ -35,6 +35,7 @@ __all__ = [
     "Stimulus",
     "TransformationMatrix",
     # Behave pipeline
+    "MAX_INTENSITY_GAIN",
     "behave",
     # Feel / Decay (Phase 3)
     "feel",

@@ -38,7 +38,7 @@ composites). You call three operations:
 | Call | Role |
 |------|------|
 | `feel(situation, personality, current_mood?)` | Situation → mood change |
-| `behave(personality, stimulus, intensity, mood?)` | Mood + situation appraisal → outward tendencies |
+| `behave(personality, stimulus, intensity, mood?)` | Mood + situation appraisal → outward tendencies (`intensity` = output gain) |
 | `decay(personality, current_mood, elapsed)` | Mood drifts back toward resting baseline |
 
 **Mood** is internal. **Behave** is how that internal state shows up outwardly
@@ -287,7 +287,7 @@ stimulus = Stimulus(
     # behavioral={...} is accepted but not used by the pipeline yet
 )
 
-out = behave(estp, stimulus, intensity=0.85, mood=result.new_mood)
+out = behave(estp, stimulus, intensity=0.5, mood=result.new_mood)
 bv = out.behavioral_vector
 # bv.aggression_passivity, .impulsiveness_deliberation, ...
 ```
@@ -297,16 +297,26 @@ Pipeline (simplified):
 1. `appraisal = personality.baseline + stimulus.appraisal`
 2. Scale the mood→behavior matrix by appraisal (control/certainty pathways)
 3. `offset = matrix × mood × susceptibility`
-4. `output = behavioral_baseline + offset`
-5. Mix with noise by `intensity` (high = on-personality; low = more variance)
+4. `personality_output = behavioral_baseline + offset`
+5. Apply **intensity as gain**: `gain = 1 + intensity × (MAX_INTENSITY_GAIN - 1)`  
+   (`MAX_INTENSITY_GAIN` is 4.0 today → intensity `0` keeps the authored signal; `1` amplifies up to 4×)
 6. Clamp to [−1, 1]
+
+`intensity` is **not** a randomness / personality-override dial. Output is
+deterministic for the same inputs (`rng` is accepted but unused).
+
+| Intensity | Effect |
+|-----------|--------|
+| `0.0` | Unamplified personality signal (previous “centered” magnitudes) |
+| `0.5` | Mid gain (2.5× with default max) |
+| `1.0` | Maximum expressiveness (4×, then clamp) |
 
 `BehaveResult` also includes `conflict_flag` (always `False` for now),
 `rigidity_indicator`, and `deviation_amount` from baseline.
 
 ### Same situation, different personalities
 
-With the tent-stake inputs above at `intensity=0.85`, composites diverge, e.g.:
+With the tent-stake inputs above at `intensity=0.5`, composites diverge, e.g.:
 
 | Personality | aggression | impulsiveness | sociability | Plausible game read |
 |-------------|------------|---------------|-------------|---------------------|
@@ -331,8 +341,6 @@ Higher `rumination` → mood lingers longer.
 ## Full single-pawn loop
 
 ```python
-import random
-
 # --- once at load ---
 composites = generate_all_composites(assemble(parse_excel()))
 pawn_personality = composites[("ISTJ", "Virgo")]
@@ -347,13 +355,12 @@ stimulus = Stimulus(appraisal=AppraisalVector(control=0.25, certainty=-0.20))
 tendencies = behave(
     pawn_personality,
     stimulus,
-    intensity=0.85,
+    intensity=0.5,  # mid gain; use 0.0 for unamplified, 1.0 for max
     mood=pawn_mood,
-    rng=random.Random(),  # optional; pass a seeded RNG for determinism
 )
 
 # --- your runtime ---
-if tendencies.behavioral_vector.aggression_passivity > 0.15:
+if tendencies.behavioral_vector.aggression_passivity > 0.35:
     play("insist_on_stake_order")
 elif tendencies.behavioral_vector.sociability_withdrawal < -0.10:
     play("go_quiet_and_reposition_stakes")
@@ -401,7 +408,7 @@ def partner_impact(behavior) -> tuple[MoodVector, AppraisalVector]:
     return mood_delta, appraisal
 
 
-def exchange(actor, partner, stimulus, intensity=0.85):
+def exchange(actor, partner, stimulus, intensity=0.5):
     """One beat: actor acts upon partner."""
     felt = feel(
         MoodVector(0, 0, 0, 0, 0),  # no new world event this beat
@@ -460,7 +467,8 @@ runtime so genre and tone remain yours.
    labels like anger vs hurt.
 4. **Reuse a reference catalog** in your game (hunger, insult, compliment,
    task conflict) so designers aren’t inventing floats ad hoc every time.
-5. **Seed `rng`** in `behave` when you need deterministic replays or tests.
+5. **Use `intensity` as gain**, not drama-randomness: `0` for subtle leans,
+   higher when the beat should read bigger on the same personality signal.
 
 ## Project layout
 

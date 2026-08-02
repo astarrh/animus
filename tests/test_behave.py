@@ -4,7 +4,7 @@ Validates Phase 1 completion criteria:
 1. INTJ-Capricorn processes bee-in-tent stimulus with plausible output
 2. Varying mood inputs produces plausible behavioral shifts
 3. Varying appraisal context produces different behavioral pathways
-4. High intensity = personality-consistent; low intensity = more variance
+4. Intensity acts as output gain (0 = unamplified, 1 = max gain)
 5. All outputs are properly clamped to valid ranges
 """
 
@@ -57,33 +57,30 @@ class TestBeeInTent:
     { agg: +0.1, imp: -0.3, soc: -0.2, emp: -0.1, cur: +0.1 }
 
     INTJ-Capricorn should be similar: low aggression, deliberate,
-    withdrawn, slightly self-interested, mildly curious. At high
-    intensity, no action trigger should fire.
+    withdrawn, slightly self-interested, mildly curious. At low
+    (unamplified) intensity, no action trigger should fire.
     """
 
-    def test_high_intensity_doesnt_look_up(self, personality, bee_stimulus, rng):
-        """At high intensity, INTJ-Cap should produce a muted response."""
-        result = behave(personality, bee_stimulus, intensity=0.9, rng=rng)
+    def test_low_intensity_doesnt_look_up(self, personality, bee_stimulus, rng):
+        """At low (unamplified) intensity, INTJ-Cap should produce a muted response."""
+        result = behave(personality, bee_stimulus, intensity=0.0, rng=rng)
         bv = result.behavioral_vector
 
         # No aggression trigger fires (threshold is +0.5)
         assert bv.aggression_passivity < 0.5, "Should not swat at the bee"
-        # Not fleeing either (threshold is -0.4 aggression AND -0.3 sociability)
         # Deliberate, not impulsive
         assert bv.impulsiveness_deliberation < 0.0, "Should be deliberate, not impulsive"
         # Withdrawn
         assert bv.sociability_withdrawal < 0.0, "Should be withdrawn"
 
-    def test_low_intensity_allows_variance(self, personality, bee_stimulus):
-        """At low intensity, outputs should vary across seeds."""
-        results = []
-        for seed in range(20):
-            r = behave(personality, bee_stimulus, intensity=0.1, rng=random.Random(seed))
-            results.append(r.behavioral_vector.aggression_passivity)
-
-        # With 20 seeds at low intensity, we should see meaningful spread
-        spread = max(results) - min(results)
-        assert spread > 0.2, f"Low intensity should produce variance, got spread={spread:.3f}"
+    def test_output_is_deterministic(self, personality, bee_stimulus):
+        """Intensity no longer mixes noise; same inputs yield identical outputs."""
+        results = [
+            behave(personality, bee_stimulus, intensity=0.5, rng=random.Random(seed))
+            .behavioral_vector.to_list()
+            for seed in range(10)
+        ]
+        assert all(r == results[0] for r in results)
 
     def test_result_has_metadata(self, personality, bee_stimulus, rng):
         result = behave(personality, bee_stimulus, intensity=0.5, rng=rng)
@@ -165,8 +162,9 @@ class TestAppraisalVariation:
         s_high = Stimulus(appraisal=AppraisalVector(control=0.8, certainty=0.0))
         s_low = Stimulus(appraisal=AppraisalVector(control=-0.8, certainty=0.0))
 
-        r_high = behave(personality, s_high, 0.9, mood=distressed, rng=random.Random(42))
-        r_low = behave(personality, s_low, 0.9, mood=distressed, rng=random.Random(42))
+        # Use low intensity so appraisal differences are visible before clamp.
+        r_high = behave(personality, s_high, 0.0, mood=distressed, rng=random.Random(42))
+        r_low = behave(personality, s_low, 0.0, mood=distressed, rng=random.Random(42))
 
         # High control should produce more aggression (or less passivity) than low
         assert (r_high.behavioral_vector.aggression_passivity
@@ -181,8 +179,8 @@ class TestAppraisalVariation:
         s_certain = Stimulus(appraisal=AppraisalVector(control=0.0, certainty=0.8))
         s_uncertain = Stimulus(appraisal=AppraisalVector(control=0.0, certainty=-0.8))
 
-        r_certain = behave(personality, s_certain, 0.9, mood=distressed, rng=random.Random(42))
-        r_uncertain = behave(personality, s_uncertain, 0.9, mood=distressed, rng=random.Random(42))
+        r_certain = behave(personality, s_certain, 0.0, mood=distressed, rng=random.Random(42))
+        r_uncertain = behave(personality, s_uncertain, 0.0, mood=distressed, rng=random.Random(42))
 
         # High certainty → more deliberate (lower impulsiveness value)
         assert (r_certain.behavioral_vector.impulsiveness_deliberation
@@ -191,57 +189,44 @@ class TestAppraisalVariation:
 
 
 # ---------------------------------------------------------------------------
-# 4. Intensity controls personality vs. variance
+# 4. Intensity controls output gain
 # ---------------------------------------------------------------------------
 
 class TestIntensity:
-    def test_high_intensity_is_consistent(self, personality, bee_stimulus):
-        """At high intensity, different seeds should produce similar outputs."""
-        results = []
-        for seed in range(20):
-            r = behave(personality, bee_stimulus, intensity=1.0, rng=random.Random(seed))
-            results.append(r.behavioral_vector.to_list())
+    def test_zero_intensity_matches_unamplified_signal(self, personality, bee_stimulus):
+        """intensity=0 returns the raw personality_output (gain 1)."""
+        from animus.behave import MAX_INTENSITY_GAIN
 
-        # Check spread across seeds for each dimension
-        for dim in range(5):
-            values = [r[dim] for r in results]
-            spread = max(values) - min(values)
-            assert spread < 0.05, \
-                f"At intensity=1.0, dimension {dim} spread should be near 0, got {spread:.4f}"
+        r0 = behave(personality, bee_stimulus, intensity=0.0)
+        r1 = behave(personality, bee_stimulus, intensity=1.0)
+        v0 = r0.behavioral_vector.to_list()
+        v1 = r1.behavioral_vector.to_list()
 
-    def test_low_intensity_has_high_variance(self, personality, bee_stimulus):
-        """At low intensity, different seeds should produce varied outputs."""
-        results = []
-        for seed in range(20):
-            r = behave(personality, bee_stimulus, intensity=0.0, rng=random.Random(seed))
-            results.append(r.behavioral_vector.to_list())
+        # High intensity should be a larger-magnitude version of the same direction
+        # (unless clamping flattens a dim to ±1).
+        for i in range(5):
+            if abs(v0[i] * MAX_INTENSITY_GAIN) <= 1.0:
+                assert abs(v1[i] - v0[i] * MAX_INTENSITY_GAIN) < 1e-9
+            else:
+                assert abs(v1[i]) == 1.0
 
-        # At least some dimensions should show significant spread
-        max_spread = 0.0
-        for dim in range(5):
-            values = [r[dim] for r in results]
-            spread = max(values) - min(values)
-            max_spread = max(max_spread, spread)
-
-        assert max_spread > 0.5, \
-            f"At intensity=0.0, should see significant variance, max spread={max_spread:.3f}"
+    def test_higher_intensity_increases_magnitude(self, personality, bee_stimulus):
+        """Raising intensity amplifies |output| on at least one dimension."""
+        low = behave(personality, bee_stimulus, intensity=0.0).behavioral_vector.to_list()
+        high = behave(personality, bee_stimulus, intensity=1.0).behavioral_vector.to_list()
+        mag_low = sum(abs(x) for x in low)
+        mag_high = sum(abs(x) for x in high)
+        assert mag_high > mag_low, f"Expected gain: low={mag_low:.4f} high={mag_high:.4f}"
 
     def test_intensity_monotonic_deviation(self, personality, bee_stimulus):
-        """As intensity increases, deviation from baseline should generally decrease
-        (output converges to personality baseline)."""
-        deviations = []
-        for intensity in [0.0, 0.25, 0.5, 0.75, 1.0]:
-            # Average over multiple seeds to smooth out randomness
-            avg_dev = 0.0
-            n = 50
-            for seed in range(n):
-                r = behave(personality, bee_stimulus, intensity, rng=random.Random(seed))
-                avg_dev += r.deviation_amount
-            deviations.append(avg_dev / n)
-
-        # Deviation at intensity=1.0 should be less than at intensity=0.0
-        assert deviations[-1] < deviations[0], \
-            f"Higher intensity should mean lower deviation: {deviations}"
+        """As intensity increases, deviation from behavioral baseline should grow
+        (gain pulls the vector farther from the unamplified neighborhood)."""
+        deviations = [
+            behave(personality, bee_stimulus, intensity).deviation_amount
+            for intensity in [0.0, 0.25, 0.5, 0.75, 1.0]
+        ]
+        assert deviations[-1] > deviations[0], \
+            f"Higher intensity should mean higher deviation: {deviations}"
 
 
 # ---------------------------------------------------------------------------
@@ -250,9 +235,9 @@ class TestIntensity:
 
 class TestClamping:
     def test_behavioral_output_is_clamped(self, personality, bee_stimulus):
-        """All output values should be in [-1.0, 1.0]."""
-        for seed in range(100):
-            r = behave(personality, bee_stimulus, intensity=0.0, rng=random.Random(seed))
+        """All output values should be in [-1.0, 1.0], including at max gain."""
+        for intensity in (0.0, 0.5, 1.0):
+            r = behave(personality, bee_stimulus, intensity=intensity)
             for val in r.behavioral_vector.to_list():
                 assert -1.0 <= val <= 1.0, f"Output {val} is out of range"
 
