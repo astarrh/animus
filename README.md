@@ -1,1 +1,357 @@
-# animus
+# Animus
+
+A lightweight, game-agnostic **personality calculator** for NPCs.
+
+Animus does not own pawns, dialogue, or action selection. It turns numerical
+situation inputs into personality-colored **mood** and **behavioral tendency**
+outputs. Your game keeps state, maps events to vectors, and decides narrative
+outcomes.
+
+Two different games can feed Animus the same situation and interpret the same
+output vector in completely different ways.
+
+```text
+Game event  →  (author maps to numbers)  →  feel / behave / decay  →  numbers  →  (game maps to actions)
+```
+
+## Install
+
+```bash
+pip install -e ".[dev]"   # from repo root; openpyxl required
+```
+
+Requires Python 3.11+.
+
+```python
+from animus import feel, behave, decay
+from animus import MoodVector, AppraisalVector, Stimulus
+from animus.data_pipeline.excel_parser import parse_excel
+from animus.data_pipeline.block_assembler import assemble
+from animus.composite import generate_all_composites
+```
+
+## Core idea
+
+Each character is a `PersonalityProfile` (typically one of 192 MBTI × zodiac
+composites). You call three operations:
+
+| Call | Role |
+|------|------|
+| `feel(situation, personality, current_mood?)` | Situation → mood change |
+| `behave(personality, stimulus, intensity, mood?)` | Mood + situation appraisal → outward tendencies |
+| `decay(personality, current_mood, elapsed)` | Mood drifts back toward resting baseline |
+
+**Mood** is internal. **Behave** is how that internal state shows up outwardly
+for *this* personality. Irritation vs hurt vs shutdown is not a separate mood
+label — it emerges from personality + appraisal + mood through `behave`.
+
+## Spaces (what the numbers mean)
+
+### Mood (internal) — bipolar −1…+1, except arousal 0…1
+
+| Axis | Negative pole | Positive pole |
+|------|---------------|---------------|
+| `distress_contentment` | upset / strained | at ease |
+| `fear_confidence` | afraid / unsure | confident |
+| `isolation_belonging` | alienated | connected |
+| `shame_pride` | ashamed / diminished | proud / affirmed |
+| `arousal` | (low) calm | (high) activated |
+
+Rough magnitudes for authors: **±0.2** mild, **±0.5** clear, **±0.8** intense.
+
+There is no dedicated “anger” axis. Annoyance is usually mild negative distress
+plus some arousal; whether that becomes arguing or withdrawing is decided in
+`behave`, not in mood naming.
+
+### Appraisal (situational cognition) — bipolar −1…+1
+
+Passed on the `Stimulus` into `behave` (added to the personality’s appraisal baseline):
+
+| Axis | Negative | Positive |
+|------|----------|----------|
+| `control` | helpless / can’t steer this | agentic / I can direct this |
+| `certainty` | unsettled / unpredictable | known / procedure is clear |
+
+### Behavioral (outward tendencies) — bipolar −1…+1
+
+Output of `behave`. **Not actions** — leanings your game thresholds into lines,
+animations, or choices.
+
+| Axis | Negative pole | Positive pole |
+|------|---------------|---------------|
+| `aggression_passivity` | passive / yielding | assertive / pushy |
+| `impulsiveness_deliberation` | deliberate | impulsive |
+| `sociability_withdrawal` | withdrawn | socially engaging |
+| `empathy_self_interest` | self-focused | other-oriented |
+| `curiosity_avoidance` | avoidant | investigative |
+
+Example thresholds (illustrative only — pick your own):
+
+- `aggression_passivity > 0.5` → character escalates / snaps  
+- `sociability_withdrawal < -0.3` and low aggression → goes quiet  
+- `impulsiveness_deliberation < 0` → plans before speaking  
+
+### Personality scalars
+
+| Scalar | Effect |
+|--------|--------|
+| `susceptibility` | Scales how strongly situations move mood / behavior |
+| `rumination` | Slows mood decay (feelings linger) |
+| `rigidity` | Exposed on results today; not yet used inside the math |
+| `assertiveness` | Used when blending MBTI vs sign into a composite |
+
+## Personalities
+
+Profiles are built from Excel coefficients (`docs/personality_building_blocks.xlsx`):
+16 MBTI types × 12 signs → **192 composites**.
+
+```python
+library = assemble(parse_excel())  # defaults to docs/personality_building_blocks.xlsx
+composites = generate_all_composites(library)
+
+estp = composites[("ESTP", "Aries")]
+intj = composites[("INTJ", "Capricorn")]
+```
+
+Optional `global_bias` on `generate_all_composites` / `blend_composite` shifts
+blend weight toward MBTI (`+`) or astrology (`-`).
+
+You can also construct a `PersonalityProfile` by hand if you want characters
+outside the MBTI × sign grid.
+
+## Feel
+
+Maps a **situation mood delta** (authored by you) through personality
+susceptibility onto current mood.
+
+```python
+# "Petty disagreement while staking a tent"
+situation = MoodVector(
+    distress_contentment=-0.25,  # mild annoyance
+    fear_confidence=0.10,        # not scared — slightly sure of self
+    isolation_belonging=-0.20,   # friction with partner
+    shame_pride=0.15,            # competence / "I'm right" nudge
+    arousal=0.35,                # a bit heated
+)
+
+result = feel(situation, estp)           # uses resting mood if none provided
+# result.mood_delta  — susceptibility-scaled change applied
+# result.new_mood    — store this on your pawn
+```
+
+The engine does **not** parse keywords like `"argument"`. You own the catalog of
+situation → `MoodVector` mappings.
+
+## Behave
+
+Turns personality + mood + situational appraisal into a behavioral tendency
+vector.
+
+```python
+stimulus = Stimulus(
+    appraisal=AppraisalVector(
+        control=0.25,     # "I should direct how this is done"
+        certainty=-0.20,  # procedure is contested
+    ),
+    # behavioral={...} is accepted but not used by the pipeline yet
+)
+
+out = behave(estp, stimulus, intensity=0.85, mood=result.new_mood)
+bv = out.behavioral_vector
+# bv.aggression_passivity, .impulsiveness_deliberation, ...
+```
+
+Pipeline (simplified):
+
+1. `appraisal = personality.baseline + stimulus.appraisal`
+2. Scale the mood→behavior matrix by appraisal (control/certainty pathways)
+3. `offset = matrix × mood × susceptibility`
+4. `output = behavioral_baseline + offset`
+5. Mix with noise by `intensity` (high = on-personality; low = more variance)
+6. Clamp to [−1, 1]
+
+`BehaveResult` also includes `conflict_flag` (always `False` for now),
+`rigidity_indicator`, and `deviation_amount` from baseline.
+
+### Same situation, different personalities
+
+With the tent-stake inputs above at `intensity=0.85`, composites diverge, e.g.:
+
+| Personality | aggression | impulsiveness | sociability | Plausible game read |
+|-------------|------------|---------------|-------------|---------------------|
+| ESTP-Aries | higher | nearer zero / + | engages | pushes the point |
+| ESFJ-Leo | moderate + | more deliberate | engages | firm but social |
+| INFP-Pisces | near zero | mild | slight − | soft, pulls back |
+| INTJ-Capricorn | near zero | deliberate | withdrawn | quiet, does it their way |
+
+Your game chooses the concrete line or animation; Animus only supplies the lean.
+
+## Decay
+
+Mood returns toward resting baseline. `elapsed` is abstract (seconds, turns,
+story beats — your choice).
+
+```python
+pawn.mood = decay(estp, pawn.mood, elapsed=1.0)
+```
+
+Higher `rumination` → mood lingers longer.
+
+## Full single-pawn loop
+
+```python
+import random
+
+# --- once at load ---
+composites = generate_all_composites(assemble(parse_excel()))
+pawn_personality = composites[("ISTJ", "Virgo")]
+pawn_mood = pawn_personality.resting_mood
+
+# --- on game event: disagreement over stake order ---
+situation = MoodVector(-0.25, 0.10, -0.20, 0.15, 0.35)
+felt = feel(situation, pawn_personality, current_mood=pawn_mood)
+pawn_mood = felt.new_mood
+
+stimulus = Stimulus(appraisal=AppraisalVector(control=0.25, certainty=-0.20))
+tendencies = behave(
+    pawn_personality,
+    stimulus,
+    intensity=0.85,
+    mood=pawn_mood,
+    rng=random.Random(),  # optional; pass a seeded RNG for determinism
+)
+
+# --- your runtime ---
+if tendencies.behavioral_vector.aggression_passivity > 0.15:
+    play("insist_on_stake_order")
+elif tendencies.behavioral_vector.sociability_withdrawal < -0.10:
+    play("go_quiet_and_reposition_stakes")
+else:
+    play("negotiate")
+
+# --- later ---
+pawn_mood = decay(pawn_personality, pawn_mood, elapsed=1.0)
+```
+
+## Two pawns: passing values back and forth
+
+Animus calculates **one character at a time**. A disagreement between two pawns
+is a game-orchestrated loop: each side’s behavioral output is mapped by *you*
+into the other side’s next Feel / Stimulus inputs.
+
+```text
+A.mood ──feel──► A.mood'
+A.mood' + stimulus_A ──behave──► A.behavior
+        │
+        ▼  game: A.behavior → mood delta + appraisal for B
+B.mood ──feel──► B.mood'
+B.mood' + stimulus_B ──behave──► B.behavior
+        │
+        ▼  game: B.behavior → mood delta + appraisal for A
+… optional decay on either pawn between beats …
+```
+
+Example bridge (illustrative — tune freely):
+
+```python
+def partner_impact(behavior) -> tuple[MoodVector, AppraisalVector]:
+    """Map one pawn's outward lean into the other's next inputs."""
+    mood_delta = MoodVector(
+        distress_contentment=-0.15 * max(0.0, behavior.aggression_passivity),
+        fear_confidence=-0.10 * max(0.0, behavior.aggression_passivity),
+        isolation_belonging=-0.20 * max(0.0, -behavior.empathy_self_interest),
+        shame_pride=-0.10 * max(0.0, behavior.aggression_passivity),
+        arousal=0.20 * abs(behavior.aggression_passivity),
+    )
+    appraisal = AppraisalVector(
+        control=-0.15 * behavior.aggression_passivity,   # pushed → feel less in charge
+        certainty=-0.10 * abs(behavior.impulsiveness_deliberation),
+    )
+    return mood_delta, appraisal
+
+
+def exchange(actor, partner, stimulus, intensity=0.85):
+    """One beat: actor acts upon partner."""
+    felt = feel(
+        MoodVector(0, 0, 0, 0, 0),  # no new world event this beat
+        actor["personality"],
+        current_mood=actor["mood"],
+    )
+    # (In a real beat you may feel a world event on the actor first.)
+    out = behave(actor["personality"], stimulus, intensity, mood=actor["mood"])
+    delta, appraisal_shift = partner_impact(out.behavioral_vector)
+    partner["mood"] = feel(delta, partner["personality"], partner["mood"]).new_mood
+    return out, Stimulus(appraisal=appraisal_shift)
+
+
+# Setup
+A = {"personality": composites[("ESTP", "Aries")], "mood": None}
+B = {"personality": composites[("INFP", "Pisces")], "mood": None}
+A["mood"] = A["personality"].resting_mood
+B["mood"] = B["personality"].resting_mood
+
+# Opening spat hits both (shared situation, different susceptibilities)
+opening = MoodVector(-0.25, 0.10, -0.20, 0.15, 0.35)
+A["mood"] = feel(opening, A["personality"], A["mood"]).new_mood
+B["mood"] = feel(opening, B["personality"], B["mood"]).new_mood
+
+base = Stimulus(appraisal=AppraisalVector(control=0.25, certainty=-0.20))
+a_out, b_stimulus = exchange(A, B, base)
+b_out, a_stimulus = exchange(B, A, b_stimulus)
+
+# Store a_out / b_out tendencies for dialogue selection; decay between scenes
+A["mood"] = decay(A["personality"], A["mood"], elapsed=1.0)
+B["mood"] = decay(B["personality"], B["mood"], elapsed=1.0)
+```
+
+What Animus guarantees in this loop: personality-consistent mood updates and
+behavioral leans. What it does **not** do: resolve who “wins,” escalate
+automatically, or define the partner-impact mapping — that stays in your
+runtime so genre and tone remain yours.
+
+## What you own vs what Animus owns
+
+| You (game) | Animus |
+|------------|--------|
+| Pawn entities and saved mood | Profile math and composites |
+| Event → mood / appraisal catalogs | `feel` / `behave` / `decay` |
+| Behavioral vector → actions / lines | Axis ranges and clamping |
+| Two-pawn bridging and conflict resolution | Per-call, single-character calculation |
+| Narrative tone | Numerical calculator only |
+
+## Authoring tips
+
+1. **Keep situation vectors small** for mundane events (±0.1–0.3). Save large
+   deltas for crises.
+2. **Put “what kind of moment is this?” into appraisal** (`control` /
+   `certainty`), not into inventing new mood axes.
+3. **Put “how do they show it?” into reading `behave` output**, not into mood
+   labels like anger vs hurt.
+4. **Reuse a reference catalog** in your game (hunger, insult, compliment,
+   task conflict) so designers aren’t inventing floats ad hoc every time.
+5. **Seed `rng`** in `behave` when you need deterministic replays or tests.
+
+## Project layout
+
+```text
+src/animus/
+  models.py           # vectors, Stimulus, PersonalityProfile, results
+  feel.py / behave.py / decay.py
+  composite.py        # blend MBTI × sign → profiles
+  building_blocks.py
+  data_pipeline/      # Excel → building blocks (+ optional hot reload)
+  personalities.py    # Phase-1 hand profiles (tests / reference)
+docs/personality_building_blocks.xlsx
+tests/                # including scenario walkthroughs
+```
+
+## Status notes
+
+- Feel → Behave → Decay pipelines are implemented and covered by tests.
+- `Stimulus.behavioral` tags are stored but **not** consumed yet.
+- `conflict_flag` / external social pressure is **not** implemented (`False`).
+- `rigidity` is returned on behave results but does not yet alter the pipeline.
+
+## License
+
+See repository metadata / license file if present.
