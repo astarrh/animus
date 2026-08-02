@@ -91,33 +91,164 @@ Example thresholds (illustrative only — pick your own):
 - `sociability_withdrawal < -0.3` and low aggression → goes quiet  
 - `impulsiveness_deliberation < 0` → plans before speaking  
 
-### Personality scalars
+## PersonalityProfile
 
-| Scalar | Effect |
-|--------|--------|
-| `susceptibility` | Scales how strongly situations move mood / behavior |
-| `rumination` | Slows mood decay (feelings linger) |
-| `rigidity` | Exposed on results today; not yet used inside the math |
-| `assertiveness` | Used when blending MBTI vs sign into a composite |
+A `PersonalityProfile` is the full static description of one character’s
+personality. Animus does not store pawns; your game holds a profile (and a
+separate current `MoodVector`) on each pawn and passes them into `feel` /
+`behave` / `decay`.
 
-## Personalities
-
-Profiles are built from Excel coefficients (`docs/personality_building_blocks.xlsx`):
-16 MBTI types × 12 signs → **192 composites**.
+Profiles are usually one of **192 composites** (16 MBTI × 12 signs) built from
+`docs/personality_building_blocks.xlsx`. You can also construct a
+`PersonalityProfile` by hand for characters outside that grid.
 
 ```python
 library = assemble(parse_excel())  # defaults to docs/personality_building_blocks.xlsx
 composites = generate_all_composites(library)
 
-estp = composites[("ESTP", "Aries")]
-intj = composites[("INTJ", "Capricorn")]
+profile = composites[("INTJ", "Capricorn")]
+profile.susceptibility   # read any field directly
+profile.resting_mood
 ```
 
 Optional `global_bias` on `generate_all_composites` / `blend_composite` shifts
 blend weight toward MBTI (`+`) or astrology (`-`).
 
-You can also construct a `PersonalityProfile` by hand if you want characters
-outside the MBTI × sign grid.
+### Fields exposed
+
+Every composite exposes these attributes:
+
+| Field | Type | Range | Role |
+|-------|------|-------|------|
+| `mbti_type` | `str` | e.g. `"INTJ"` | Label of the MBTI half of the blend |
+| `sign` | `str` | e.g. `"Capricorn"` | Label of the astrological half |
+| `resting_mood` | `MoodVector` | mood axes | Default / equilibrium mood; used when `feel`/`behave` omit current mood, and as the attractor for `decay` |
+| `appraisal_baseline` | `AppraisalVector` | −1…+1 | Habitual sense of control & certainty; added to every stimulus appraisal in `behave` |
+| `behavioral_baseline` | `BehavioralVector` | −1…+1 | Habitual outward lean before mood/situation offsets |
+| `transform_matrix` | `TransformationMatrix` | 5×5 | How mood dimensions push behavioral dimensions for this personality |
+| `susceptibility` | `float` | 0…1 | How strongly situations move this character |
+| `rumination` | `float` | 0…1 | How slowly mood returns to resting under `decay` |
+| `rigidity` | `float` | 0…1 | Exposed for authors / returned on `BehaveResult`; **not yet used inside the pipeline math** |
+
+Note: **`assertiveness` is not on `PersonalityProfile`**. It exists on MBTI /
+sign *building blocks* and is consumed only when blending them into a
+composite. After blend, read the fields above.
+
+### How to interpret the scalars
+
+#### `susceptibility` (0 = thick-skinned, 1 = highly reactive)
+
+The main dial for “how much does this pawn move?”
+
+- In **`feel`**: `mood_delta = situation_vector × susceptibility` (per axis).  
+  Same compliment vector → smaller delta for low susceptibility, larger for high.
+- In **`behave`**: scales the mood→behavior offset the same way.
+
+Author reads:
+
+```python
+if pawn.personality.susceptibility < 0.4:
+    # muted emotional swings — good stand-in for cynical / guarded / steady
+    ...
+elif pawn.personality.susceptibility > 0.55:
+    # wears heart on sleeve — strong mood moves from the same events
+    ...
+```
+
+This is **reactivity**, not a named trait like “cynical.” Distrusting a
+compliment’s *meaning* is still a game-side choice of input vector; low
+susceptibility only means the vector you *do* send moves them less.
+
+Rough band guide (composites vary; treat as soft):
+
+| Band | Reading |
+|------|---------|
+| ~0.30–0.40 | Steady / less moved by events |
+| ~0.40–0.55 | Typical mid-range |
+| ~0.55–0.65+ | Emotionally responsive |
+
+#### `rumination` (0 = snaps back, 1 = stews)
+
+Controls `decay` only:
+
+```text
+decayed = resting + (current - resting) × e^(-elapsed / rumination)
+```
+
+High rumination → mood lingers across turns/scenes. Low → quick return to
+`resting_mood`. Use it when deciding how long a compliment, insult, or spat
+should still color the pawn.
+
+#### `rigidity` (0 = flexible, 1 = rigid)
+
+Available on the profile and echoed as `BehaveResult.rigidity_indicator`.
+**Animus does not currently change `feel`/`behave`/`decay` from this value.**
+Authors may still use it in their own runtime (e.g. resist changing plans,
+harder to talk down) until the engine wires it in.
+
+### How to interpret the baselines
+
+#### `resting_mood`
+
+Where the character settles when nothing is happening. A slightly negative
+`isolation_belonging` resting mood is a loner baseline; higher resting
+`arousal` is someone who runs “on” even at rest. Initialize pawn mood from
+this, and expect `decay` to pull back toward it.
+
+#### `appraisal_baseline`
+
+Default cognitive stance before the situation’s stimulus is added:
+
+- Higher `control` → tends to feel agentic; `behave` amplifies more active pathways  
+- Higher `certainty` → world feels predictable; leans deliberation over impulse  
+
+Even with `Stimulus()` (zeros), `behave` still uses this baseline — so
+neutral situations remain personality-colored.
+
+#### `behavioral_baseline`
+
+The character’s default outward lean (assertive vs passive, social vs
+withdrawn, etc.) before mood offsets. Two pawns in the same mood can still
+differ because baselines differ. Read it as “who they are when the math
+hasn’t pushed them yet.”
+
+#### `transform_matrix`
+
+Advanced. Rows = behavioral axes, columns = mood axes; each cell is how
+strongly a mood dimension drives a behavioral dimension for *this*
+personality. This is why the same distressed mood can become aggression in
+one composite and withdrawal in another. Most authors never edit it directly;
+they pick a composite (or accept the Excel-authored blend).
+
+### Identity labels
+
+`mbti_type` and `sign` are informational labels for the composite. They do not
+change runtime math by themselves — the numeric fields do. Useful for debug
+UI, save data, and designer tools (“this pawn is ESTP-Aries”).
+
+### Loading and attaching to a pawn
+
+```python
+composites = generate_all_composites(assemble(parse_excel()))
+
+pawn = {
+    "personality": composites[("ESFP", "Leo")],
+    "mood": None,  # set below
+}
+pawn["mood"] = pawn["personality"].resting_mood
+
+# Designer-facing reads — all public attributes
+p = pawn["personality"]
+print(p.mbti_type, p.sign)
+print("reactivity", p.susceptibility)
+print("lingers", p.rumination)
+print("resting belonging", p.resting_mood.isolation_belonging)
+print("baseline sociability", p.behavioral_baseline.sociability_withdrawal)
+print("habitual control", p.appraisal_baseline.control)
+```
+
+Typical pattern: **profile is immutable/static**; **mood is mutable runtime
+state** your game updates from `feel` / `decay`.
 
 ## Feel
 
