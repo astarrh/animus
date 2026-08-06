@@ -172,7 +172,7 @@
         "certainty": 0.15
       },
       "behavioral_baseline": [
-        0.12,
+        0.1,
         0.05,
         -0.02,
         -0.02,
@@ -233,7 +233,7 @@
         "certainty": -0.1
       },
       "behavioral_baseline": [
-        -0.06,
+        -0.03,
         -0.05,
         0.02,
         0.02,

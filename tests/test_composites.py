@@ -182,11 +182,12 @@ class TestDifferentiation:
         infp = behave(all_composites[("INFP", "Pisces")], bee_stimulus, intensity=0.8, rng=rng)
         assert estp.behavioral_vector.aggression_passivity > infp.behavioral_vector.aggression_passivity
 
-    def test_entj_scorpio_more_dominant_than_isfj_cancer(self, all_composites, bee_stimulus):
+    def test_entj_scorpio_more_dominant_than_infj_cancer(self, all_composites, bee_stimulus):
+        """Dominant intuitive Thinking vs gentle intuitive Feeling (same S/N pole)."""
         rng = random.Random(42)
         entj = behave(all_composites[("ENTJ", "Scorpio")], bee_stimulus, intensity=0.8, rng=rng)
-        isfj = behave(all_composites[("ISFJ", "Cancer")], bee_stimulus, intensity=0.8, rng=rng)
-        assert entj.behavioral_vector.aggression_passivity > isfj.behavioral_vector.aggression_passivity
+        infj = behave(all_composites[("INFJ", "Cancer")], bee_stimulus, intensity=0.8, rng=rng)
+        assert entj.behavioral_vector.aggression_passivity > infj.behavioral_vector.aggression_passivity
 
 
 # ---------------------------------------------------------------------------
