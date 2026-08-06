@@ -237,7 +237,7 @@ async function loadDefault() {
     markDirty(false);
   } catch (err) {
     setStatus(
-      `Could not fetch default (${err.message}). From repo root run: python -m http.server 8000 — then open /tools/building-blocks-editor/`,
+      `Could not fetch default (${err.message}). From repo root run: python -m http.server 5178 — then open /tools/building-blocks-editor/`,
       "dirty",
     );
   }
