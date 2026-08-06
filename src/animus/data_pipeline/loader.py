@@ -1,4 +1,4 @@
-"""Load personality building blocks from JSON (preferred) or Excel."""
+"""Load personality building blocks from JSON (canonical) or deprecated Excel."""
 
 from __future__ import annotations
 
@@ -16,6 +16,9 @@ def load_building_blocks(path: Path | str | None = None) -> RawExcelData:
     If ``path`` is omitted, loads the packaged default JSON
     (``docs/personality_building_blocks.json``). Games can pass their own
     override file to replace the defaults entirely.
+
+    Excel (``.xlsx``) remains readable for legacy files but is deprecated as an
+    authoring format — prefer JSON.
     """
     if path is None:
         path = DEFAULT_BUILDING_BLOCKS_PATH
@@ -27,7 +30,7 @@ def load_building_blocks(path: Path | str | None = None) -> RawExcelData:
     if suffix in {".xlsx", ".xlsm", ".xltx", ".xltm"}:
         return parse_excel(path)
     raise ValueError(
-        f"Unsupported building-blocks file type {path.suffix!r}; use .json or .xlsx"
+        f"Unsupported building-blocks file type {path.suffix!r}; use .json"
     )
 
 

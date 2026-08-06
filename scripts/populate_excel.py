@@ -51,7 +51,7 @@ MBTI_POLE_MATRICES = {
         #  dist    fear    isol    shame   arou
         [-0.02, -0.03,  0.00,  0.00,  0.05],   # aggression: arousal → slight aggression
         [-0.02, -0.02,  0.00,  0.00, -0.03],   # impulsiveness: slightly more reactive
-        [-0.10, -0.06, -0.20,  0.02, -0.10],   # sociability: strong social seeking, esp from isolation
+        [-0.05, -0.03, -0.10,  0.02, -0.05],   # sociability: strong social seeking, esp from isolation
         [ 0.00,  0.00,  0.02,  0.02,  0.00],   # empathy: slightly more other-oriented
         [-0.02, -0.02, -0.02,  0.00, -0.05],   # curiosity: arousal drives engagement
     ],
@@ -59,7 +59,7 @@ MBTI_POLE_MATRICES = {
     "I": [
         [-0.01, -0.02,  0.00, -0.02,  0.02],   # aggression: minimal
         [ 0.02,  0.03,  0.00,  0.02, -0.01],   # impulsiveness: more deliberate under stress
-        [ 0.10,  0.10,  0.20,  0.05,  0.04],   # sociability: withdraws under stress / isolation
+        [ 0.05,  0.05,  0.00,  0.05,  0.02],   # sociability: withdraws under stress
         [ 0.02,  0.02,  0.02,  0.03,  0.00],   # empathy: self-focused under stress
         [ 0.02,  0.02, -0.02,  0.02, -0.05],   # curiosity: inner curiosity from arousal
     ],
@@ -121,8 +121,8 @@ MBTI_POLE_MATRICES = {
 # Dims: aggression, impulsiveness, sociability, empathy, curiosity
 
 MBTI_POLE_BEHAVIORAL_BASELINES = {
-    "E": [ 0.05,  0.05,  0.32,  0.00,  0.03],
-    "I": [-0.05, -0.05, -0.32,  0.03,  0.02],
+    "E": [ 0.05,  0.05,  0.15,  0.00,  0.03],
+    "I": [-0.05, -0.05, -0.15,  0.03,  0.02],
     "S": [ 0.03,  0.05, -0.02, -0.02,  0.00],
     "N": [-0.03, -0.05,  0.02,  0.02,  0.08],
     "T": [ 0.02, -0.10, -0.05,  0.08,  0.02],
@@ -138,8 +138,8 @@ MBTI_POLE_BEHAVIORAL_BASELINES = {
 # Dims: distress_content, fear_confid, isol_belong, shame_pride, arousal
 
 MBTI_POLE_RESTING_MOODS = {
-    "E": [ 0.05,  0.08,  0.15,  0.02,  0.18],
-    "I": [ 0.03,  0.02, -0.15, -0.01,  0.03],
+    "E": [ 0.05,  0.08,  0.10,  0.02,  0.13],
+    "I": [ 0.03,  0.02, -0.10, -0.01,  0.05],
     "S": [ 0.05,  0.05,  0.02,  0.02,  0.08],
     "N": [ 0.00,  0.03, -0.02,  0.01,  0.05],
     "T": [ 0.02,  0.08,  0.00,  0.05,  0.05],

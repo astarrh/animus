@@ -224,7 +224,7 @@ Advanced. Rows = behavioral axes, columns = mood axes; each cell is how
 strongly a mood dimension drives a behavioral dimension for *this*
 personality. This is why the same distressed mood can become aggression in
 one composite and withdrawal in another. Most authors never edit it directly;
-they pick a composite (or accept the Excel-authored blend).
+they pick a composite (or accept the JSON-authored blend).
 
 ### Identity labels
 
@@ -490,12 +490,8 @@ python -m http.server 5178
 - **Save** — writes back via the File System Access API when the browser allows it  
 - **Download JSON** — always available; drop the file into your game content folder  
 
-Excel (`.xlsx`) still loads through `load_building_blocks()` / `parse_excel()` for
-legacy workflows. To regenerate JSON from Excel after old-sheet edits:
-
-```bash
-PYTHONPATH=src python scripts/export_building_blocks_json.py
-```
+The Excel (`.xlsx`) pipeline is **deprecated**. `load_building_blocks()` still
+accepts `.xlsx` for old files, but new authoring and defaults live only in JSON.
 
 ### Game override pattern
 
@@ -527,10 +523,9 @@ src/animus/
   feel.py / behave.py / decay.py
   composite.py        # blend MBTI × sign → profiles
   building_blocks.py
-  data_pipeline/      # JSON (preferred) / Excel → building blocks
+  data_pipeline/      # JSON building blocks (+ deprecated Excel loader)
   personalities.py    # Phase-1 hand profiles (tests / reference)
-docs/personality_building_blocks.json   # default authoring data
-docs/personality_building_blocks.xlsx   # legacy source / export input
+docs/personality_building_blocks.json   # canonical default authoring data
 tools/building-blocks-editor/           # browser JSON editor
 tests/
 ```
@@ -538,7 +533,7 @@ tests/
 ## Status notes
 
 - Feel → Behave → Decay pipelines are implemented and covered by tests.
-- Building blocks default to JSON; Excel remains supported.
+- Building blocks are authored in JSON; the Excel pipeline is deprecated.
 - `Stimulus.behavioral` tags are stored but **not** consumed yet.
 - `conflict_flag` / external social pressure is **not** implemented (`False`).
 - `rigidity` is returned on behave results but does not yet alter the pipeline.
