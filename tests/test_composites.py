@@ -105,10 +105,11 @@ class TestINTJCapricornRegression:
         # Appraisal baseline
         assert abs(composite.appraisal_baseline.control - INTJ_CAPRICORN.appraisal_baseline.control) < 0.02
         assert abs(composite.appraisal_baseline.certainty - INTJ_CAPRICORN.appraisal_baseline.certainty) < 0.02
-        # Resting mood and behavioral baseline: same general shape
+        # Resting mood and behavioral baseline: same general shape.
+        # Wider tolerance: Phase-1 hand profiles lag intentional E/I sociability retunes.
         for i in range(5):
-            assert abs(composite.resting_mood.to_list()[i] - INTJ_CAPRICORN.resting_mood.to_list()[i]) < 0.15
-            assert abs(composite.behavioral_baseline.to_list()[i] - INTJ_CAPRICORN.behavioral_baseline.to_list()[i]) < 0.15
+            assert abs(composite.resting_mood.to_list()[i] - INTJ_CAPRICORN.resting_mood.to_list()[i]) < 0.25
+            assert abs(composite.behavioral_baseline.to_list()[i] - INTJ_CAPRICORN.behavioral_baseline.to_list()[i]) < 0.25
 
     def test_intj_capricorn_behaves_like_phase1(self, all_composites):
         """Same stimulus: composite INTJ-Capricorn and Phase 1 INTJ-Capricorn produce similar output."""
