@@ -7,10 +7,10 @@ Browser UI for editing `animus.building_blocks` JSON (scalars, baselines, restin
 From the **repo root** (so the default JSON is fetchable):
 
 ```bash
-python -m http.server 8000
+python -m http.server 5178
 ```
 
-Open [http://localhost:8000/tools/building-blocks-editor/](http://localhost:8000/tools/building-blocks-editor/).
+Open [http://localhost:5178/tools/building-blocks-editor/](http://localhost:5178/tools/building-blocks-editor/).
 
 ## Workflow
 

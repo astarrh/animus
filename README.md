@@ -481,8 +481,8 @@ A local editor for tweaking those values:
 
 ```bash
 # from repo root
-python -m http.server 8000
-# open http://localhost:8000/tools/building-blocks-editor/
+python -m http.server 5178
+# open http://localhost:5178/tools/building-blocks-editor/
 ```
 
 - **Load default** — fetches the shipped JSON over HTTP  
