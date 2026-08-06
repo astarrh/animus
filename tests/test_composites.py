@@ -21,7 +21,7 @@ from animus.composite import (
     compute_blend_weight,
     generate_all_composites,
 )
-from animus.data_pipeline.excel_parser import parse_excel
+from animus.data_pipeline import load_building_blocks
 from animus.data_pipeline.block_assembler import assemble
 from animus.models import (
     AppraisalVector,
@@ -31,17 +31,17 @@ from animus.models import (
 from animus.personalities import INTJ_CAPRICORN
 
 
-EXCEL_PATH = Path(__file__).parent.parent / "docs" / "personality_building_blocks.xlsx"
+JSON_PATH = Path(__file__).parent.parent / "docs" / "personality_building_blocks.json"
 
 pytestmark = pytest.mark.skipif(
-    not EXCEL_PATH.exists(),
-    reason="Excel file docs/personality_building_blocks.xlsx not found",
+    not JSON_PATH.exists(),
+    reason="JSON file docs/personality_building_blocks.json not found",
 )
 
 
 @pytest.fixture(scope="module")
 def raw_data():
-    return parse_excel(EXCEL_PATH)
+    return load_building_blocks(JSON_PATH)
 
 
 @pytest.fixture(scope="module")

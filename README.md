@@ -25,8 +25,7 @@ Requires Python 3.11+.
 ```python
 from animus import feel, behave, decay
 from animus import MoodVector, AppraisalVector, Stimulus
-from animus.data_pipeline.excel_parser import parse_excel
-from animus.data_pipeline.block_assembler import assemble
+from animus.data_pipeline import load_building_blocks, assemble
 from animus.composite import generate_all_composites
 ```
 
@@ -99,16 +98,23 @@ separate current `MoodVector`) on each pawn and passes them into `feel` /
 `behave` / `decay`.
 
 Profiles are usually one of **192 composites** (16 MBTI × 12 signs) built from
-`docs/personality_building_blocks.xlsx`. You can also construct a
-`PersonalityProfile` by hand for characters outside that grid.
+the default building-blocks JSON (`docs/personality_building_blocks.json`).
+You can also construct a `PersonalityProfile` by hand for characters outside
+that grid.
 
 ```python
-library = assemble(parse_excel())  # defaults to docs/personality_building_blocks.xlsx
+library = assemble(load_building_blocks())  # default JSON shipped in docs/
 composites = generate_all_composites(library)
 
 profile = composites[("INTJ", "Capricorn")]
 profile.susceptibility   # read any field directly
 profile.resting_mood
+```
+
+Games override defaults by pointing at their own file:
+
+```python
+library = assemble(load_building_blocks("content/my_building_blocks.json"))
 ```
 
 Optional `global_bias` on `generate_all_composites` / `blend_composite` shifts
@@ -229,7 +235,7 @@ UI, save data, and designer tools (“this pawn is ESTP-Aries”).
 ### Loading and attaching to a pawn
 
 ```python
-composites = generate_all_composites(assemble(parse_excel()))
+composites = generate_all_composites(assemble(load_building_blocks()))
 
 pawn = {
     "personality": composites[("ESFP", "Leo")],
@@ -342,7 +348,7 @@ Higher `rumination` → mood lingers longer.
 
 ```python
 # --- once at load ---
-composites = generate_all_composites(assemble(parse_excel()))
+composites = generate_all_composites(assemble(load_building_blocks()))
 pawn_personality = composites[("ISTJ", "Virgo")]
 pawn_mood = pawn_personality.resting_mood
 
@@ -457,6 +463,49 @@ runtime so genre and tone remain yours.
 | Two-pawn bridging and conflict resolution | Per-call, single-character calculation |
 | Narrative tone | Numerical calculator only |
 
+## Authoring building blocks (JSON)
+
+Personality coefficients live in versioned JSON:
+
+```text
+docs/personality_building_blocks.json   # shipped default (format: animus.building_blocks)
+```
+
+Structure is **per component** (MBTI pole, element, modality, or sign tweak),
+each with `scalars`, `behavioral_baseline`, `resting_mood`, and a 5×5 `matrix`.
+The engine still sums poles into types / signs the same way as before.
+
+### Browser editor
+
+A local editor for tweaking those values:
+
+```bash
+# from repo root
+python -m http.server 8000
+# open http://localhost:8000/tools/building-blocks-editor/
+```
+
+- **Load default** — fetches the shipped JSON over HTTP  
+- **Open JSON…** — pick any override file  
+- **Save** — writes back via the File System Access API when the browser allows it  
+- **Download JSON** — always available; drop the file into your game content folder  
+
+Excel (`.xlsx`) still loads through `load_building_blocks()` / `parse_excel()` for
+legacy workflows. To regenerate JSON from Excel after old-sheet edits:
+
+```bash
+PYTHONPATH=src python scripts/export_building_blocks_json.py
+```
+
+### Game override pattern
+
+1. Copy `docs/personality_building_blocks.json` into your project  
+2. Edit in the browser tool (or any JSON editor)  
+3. Load with `load_building_blocks("path/to/your.json")`  
+
+Animus does not merge overrides with defaults — your file replaces the whole
+building-block set.
+
 ## Authoring tips
 
 1. **Keep situation vectors small** for mundane events (±0.1–0.3). Save large
@@ -478,15 +527,18 @@ src/animus/
   feel.py / behave.py / decay.py
   composite.py        # blend MBTI × sign → profiles
   building_blocks.py
-  data_pipeline/      # Excel → building blocks (+ optional hot reload)
+  data_pipeline/      # JSON (preferred) / Excel → building blocks
   personalities.py    # Phase-1 hand profiles (tests / reference)
-docs/personality_building_blocks.xlsx
-tests/                # including scenario walkthroughs
+docs/personality_building_blocks.json   # default authoring data
+docs/personality_building_blocks.xlsx   # legacy source / export input
+tools/building-blocks-editor/           # browser JSON editor
+tests/
 ```
 
 ## Status notes
 
 - Feel → Behave → Decay pipelines are implemented and covered by tests.
+- Building blocks default to JSON; Excel remains supported.
 - `Stimulus.behavioral` tags are stored but **not** consumed yet.
 - `conflict_flag` / external social pressure is **not** implemented (`False`).
 - `rigidity` is returned on behave results but does not yet alter the pipeline.

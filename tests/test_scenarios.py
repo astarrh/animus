@@ -9,26 +9,23 @@ from pathlib import Path
 import pytest
 
 from animus import behave, decay, feel
-from animus.data_pipeline.block_assembler import assemble
-from animus.data_pipeline.excel_parser import parse_excel
+from animus.data_pipeline import assemble, load_building_blocks
 from animus.models import AppraisalVector, MoodVector, Stimulus
 from animus.personalities import ESTP_ARIES, INTJ_CAPRICORN
 
 
-EXCEL_PATH = Path(__file__).parent.parent / "docs" / "personality_building_blocks.xlsx"
+JSON_PATH = Path(__file__).parent.parent / "docs" / "personality_building_blocks.json"
 
 pytestmark = pytest.mark.skipif(
-    not EXCEL_PATH.exists(),
-    reason="Excel file docs/personality_building_blocks.xlsx not found",
+    not JSON_PATH.exists(),
+    reason="JSON file docs/personality_building_blocks.json not found",
 )
 
 
 @pytest.fixture(scope="module")
 def all_composites():
-    raw = parse_excel(EXCEL_PATH)
-    lib = assemble(raw)
     from animus.composite import generate_all_composites
-    return generate_all_composites(lib)
+    return generate_all_composites(assemble(load_building_blocks(JSON_PATH)))
 
 
 # Reference situation vectors (from reference_situations.md)

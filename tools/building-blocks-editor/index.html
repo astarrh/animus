@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Animus Building Blocks Editor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <strong>Animus</strong>
+      <span>Building Blocks Editor</span>
+    </div>
+    <div class="actions">
+      <button type="button" id="btnLoadDefault" title="Fetch docs/personality_building_blocks.json (needs local server)">Load default</button>
+      <button type="button" id="btnOpen">Open JSON…</button>
+      <button type="button" id="btnSave" class="primary" disabled>Save</button>
+      <button type="button" id="btnDownload" disabled>Download JSON</button>
+      <input type="file" id="fileInput" accept="application/json,.json" hidden />
+    </div>
+  </header>
+
+  <p class="status" id="status">Open a building-blocks JSON file, or serve the repo and Load default.</p>
+
+  <main id="workspace" class="workspace hidden">
+    <aside class="nav">
+      <label>
+        Group
+        <select id="groupSelect"></select>
+      </label>
+      <label>
+        Component
+        <select id="componentSelect"></select>
+      </label>
+      <p class="hint">
+        Edits write into the in-memory document. Save writes back to the file you opened
+        (Chromium File System Access), or use Download to export an override for your game.
+      </p>
+    </aside>
+
+    <section class="panels">
+      <article>
+        <h2>Scalars</h2>
+        <div id="scalarsTable"></div>
+      </article>
+      <article>
+        <h2>Behavioral baseline</h2>
+        <div id="baselineTable"></div>
+      </article>
+      <article>
+        <h2>Resting mood</h2>
+        <div id="moodTable"></div>
+      </article>
+      <article class="wide">
+        <h2>Mood → behavior matrix</h2>
+        <p class="sub">Rows = behavioral axes · Columns = mood axes</p>
+        <div id="matrixTable"></div>
+      </article>
+    </section>
+  </main>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>
