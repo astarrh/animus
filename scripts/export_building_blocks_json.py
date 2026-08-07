@@ -3,7 +3,8 @@
 
 Usage:
   PYTHONPATH=src python scripts/export_building_blocks_json.py
-  PYTHONPATH=src python scripts/export_building_blocks_json.py --excel docs/foo.xlsx --out docs/foo.json
+  PYTHONPATH=src python scripts/export_building_blocks_json.py \\
+      --excel docs/foo.xlsx --out src/animus/data/personality_building_blocks.json
 """
 
 from __future__ import annotations

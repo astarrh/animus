@@ -1,4 +1,4 @@
-const DEFAULT_URL = "../../docs/personality_building_blocks.json";
+const DEFAULT_URL = "../../src/animus/data/personality_building_blocks.json";
 
 const GROUPS = [
   { id: "mbti_poles", label: "MBTI poles", path: ["mbti_poles"] },

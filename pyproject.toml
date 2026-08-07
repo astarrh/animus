@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "animus"
-version = "0.1.0"
+version = "0.2.0"
 description = "A lightweight, game-agnostic personality engine for autonomous NPC decision-making"
 requires-python = ">=3.11"
 dependencies = [
@@ -20,6 +20,11 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/animus"]
+
+# Ensure the default coefficient JSON ships in the wheel even if file selection
+# ever excludes non-.py assets.
+[tool.hatch.build.targets.wheel.force-include]
+"src/animus/data/personality_building_blocks.json" = "animus/data/personality_building_blocks.json"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

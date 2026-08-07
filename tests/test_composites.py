@@ -10,7 +10,6 @@ Phase 2 completion criteria covered:
 """
 
 import random
-from pathlib import Path
 
 import pytest
 
@@ -31,17 +30,9 @@ from animus.models import (
 from animus.personalities import INTJ_CAPRICORN
 
 
-JSON_PATH = Path(__file__).parent.parent / "docs" / "personality_building_blocks.json"
-
-pytestmark = pytest.mark.skipif(
-    not JSON_PATH.exists(),
-    reason="JSON file docs/personality_building_blocks.json not found",
-)
-
-
 @pytest.fixture(scope="module")
 def raw_data():
-    return load_building_blocks(JSON_PATH)
+    return load_building_blocks()
 
 
 @pytest.fixture(scope="module")
