@@ -98,12 +98,13 @@ separate current `MoodVector`) on each pawn and passes them into `feel` /
 `behave` / `decay`.
 
 Profiles are usually one of **192 composites** (16 MBTI × 12 signs) built from
-the default building-blocks JSON (`docs/personality_building_blocks.json`).
+the packaged default building-blocks JSON
+(`animus/data/personality_building_blocks.json`).
 You can also construct a `PersonalityProfile` by hand for characters outside
 that grid.
 
 ```python
-library = assemble(load_building_blocks())  # default JSON shipped in docs/
+library = assemble(load_building_blocks())  # packaged defaults
 composites = generate_all_composites(library)
 
 profile = composites[("INTJ", "Capricorn")]
@@ -465,11 +466,14 @@ runtime so genre and tone remain yours.
 
 ## Authoring building blocks (JSON)
 
-Personality coefficients live in versioned JSON:
+Personality coefficients live in versioned JSON packaged with Animus:
 
 ```text
-docs/personality_building_blocks.json   # shipped default (format: animus.building_blocks)
+src/animus/data/personality_building_blocks.json   # shipped default (format: animus.building_blocks)
 ```
+
+`load_building_blocks()` with no path loads that file from the installed
+package (works after `pip install`, not only from a git checkout).
 
 Structure is **per component** (MBTI pole, element, modality, or sign tweak),
 each with `scalars`, `behavioral_baseline`, `resting_mood`, and a 5×5 `matrix`.
@@ -495,7 +499,8 @@ accepts `.xlsx` for old files, but new authoring and defaults live only in JSON.
 
 ### Game override pattern
 
-1. Copy `docs/personality_building_blocks.json` into your project  
+1. Copy the packaged defaults into your project (from the repo path above, or
+   from `importlib.resources` / your site-packages `animus/data/` folder)  
 2. Edit in the browser tool (or any JSON editor)  
 3. Load with `load_building_blocks("path/to/your.json")`  
 
@@ -523,9 +528,9 @@ src/animus/
   feel.py / behave.py / decay.py
   composite.py        # blend MBTI × sign → profiles
   building_blocks.py
+  data/               # packaged default building-blocks JSON
   data_pipeline/      # JSON building blocks (+ deprecated Excel loader)
   personalities.py    # Phase-1 hand profiles (tests / reference)
-docs/personality_building_blocks.json   # canonical default authoring data
 tools/building-blocks-editor/           # browser JSON editor
 tests/
 ```

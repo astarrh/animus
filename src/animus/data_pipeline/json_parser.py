@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from animus.data import building_blocks_json_dict, building_blocks_json_path
 from animus.data_pipeline.excel_parser import (
     RawAstroBaselineComponents,
     RawAstrologyComponents,
@@ -20,11 +21,8 @@ from animus.data_pipeline.excel_parser import (
     RawMBTIMatrixComponents,
 )
 
-DEFAULT_JSON_PATH = (
-    Path(__file__).parent.parent.parent.parent
-    / "docs"
-    / "personality_building_blocks.json"
-)
+# Packaged default — present after ``pip install``, not only in a git checkout.
+DEFAULT_JSON_PATH = building_blocks_json_path()
 
 SCALAR_KEYS = (
     "assertiveness",
@@ -37,9 +35,13 @@ SCALAR_KEYS = (
 
 
 def parse_json(path: Path | None = None) -> RawExcelData:
-    """Load building-block JSON and return the same structure as parse_excel()."""
+    """Load building-block JSON and return the same structure as parse_excel().
+
+    With no ``path``, loads the packaged defaults via ``importlib.resources``
+    so installs that are not on a normal filesystem still work.
+    """
     if path is None:
-        path = DEFAULT_JSON_PATH
+        return raw_from_dict(building_blocks_json_dict())
     with Path(path).open(encoding="utf-8") as f:
         data = json.load(f)
     return raw_from_dict(data)

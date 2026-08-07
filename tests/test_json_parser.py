@@ -4,24 +4,18 @@ from pathlib import Path
 
 import pytest
 
+from animus.data import building_blocks_json_path
 from animus.data_pipeline.block_assembler import assemble
 from animus.data_pipeline.excel_parser import parse_excel
-from animus.data_pipeline.json_parser import parse_json
-from animus.data_pipeline.loader import load_building_blocks
+from animus.data_pipeline.json_parser import DEFAULT_JSON_PATH, parse_json
+from animus.data_pipeline.loader import default_building_blocks_path, load_building_blocks
 
-ROOT = Path(__file__).parent.parent
-JSON_PATH = ROOT / "docs" / "personality_building_blocks.json"
-EXCEL_PATH = ROOT / "docs" / "personality_building_blocks.xlsx"
-
-pytestmark = pytest.mark.skipif(
-    not JSON_PATH.exists(),
-    reason="JSON file docs/personality_building_blocks.json not found",
-)
+EXCEL_PATH = Path(__file__).parent.parent / "docs" / "personality_building_blocks.xlsx"
 
 
 @pytest.fixture(scope="module")
 def json_raw():
-    return parse_json(JSON_PATH)
+    return parse_json()
 
 
 class TestJsonParser:
@@ -34,6 +28,15 @@ class TestJsonParser:
         for matrix in json_raw.mbti_matrices.matrices.values():
             assert len(matrix) == 5
             assert all(len(row) == 5 for row in matrix)
+
+    def test_default_path_is_packaged(self):
+        path = building_blocks_json_path()
+        assert path.is_file()
+        assert path.name == "personality_building_blocks.json"
+        assert "animus" in path.parts
+        assert path.parent.name == "data"
+        assert DEFAULT_JSON_PATH == path
+        assert default_building_blocks_path() == path
 
     def test_loader_defaults_to_json(self):
         raw = load_building_blocks()

@@ -14,7 +14,7 @@ Open [http://localhost:5178/tools/building-blocks-editor/](http://localhost:5178
 
 ## Workflow
 
-1. **Load default** — pulls `docs/personality_building_blocks.json`
+1. **Load default** — pulls `src/animus/data/personality_building_blocks.json`
 2. Tweak MBTI poles / astrology components
 3. **Save** (Chromium + File System Access) or **Download JSON**
 4. In your game: `load_building_blocks("path/to/override.json")`

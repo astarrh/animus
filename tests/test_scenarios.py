@@ -4,7 +4,6 @@ Phase 3: River scene, hunger pang, mood stacking, full Feel→Behave→decay loo
 """
 
 import random
-from pathlib import Path
 
 import pytest
 
@@ -14,18 +13,10 @@ from animus.models import AppraisalVector, MoodVector, Stimulus
 from animus.personalities import ESTP_ARIES, INTJ_CAPRICORN
 
 
-JSON_PATH = Path(__file__).parent.parent / "docs" / "personality_building_blocks.json"
-
-pytestmark = pytest.mark.skipif(
-    not JSON_PATH.exists(),
-    reason="JSON file docs/personality_building_blocks.json not found",
-)
-
-
 @pytest.fixture(scope="module")
 def all_composites():
     from animus.composite import generate_all_composites
-    return generate_all_composites(assemble(load_building_blocks(JSON_PATH)))
+    return generate_all_composites(assemble(load_building_blocks()))
 
 
 # Reference situation vectors (from reference_situations.md)
