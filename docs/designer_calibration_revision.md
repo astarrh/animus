@@ -201,10 +201,10 @@ Add `models.py` field comments (or docstring on `PersonalityProfile`) noting raw
 
 ### 6.5 Acceptance criteria
 
-- [ ] Designer can call `designer_scalars()` and get `[0, 1]` with documented meaning.
-- [ ] README explicitly states raw composite range and tells authors not to threshold on raw values.
-- [ ] No change to default feel/behave/decay output for existing callers.
-- [ ] All existing tests pass unchanged.
+- [x] Designer can call `designer_scalars()` and get `[0, 1]` with documented meaning.
+- [x] README explicitly states raw composite range and tells authors not to threshold on raw values.
+- [x] No change to default feel/behave/decay output for existing callers.
+- [x] All existing tests pass unchanged.
 
 ---
 

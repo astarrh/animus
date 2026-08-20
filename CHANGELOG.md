@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Designer calibration (Phase 1):** `animus.designer` module with
+  `ScalarBounds`, `DesignerScalars`, `compute_scalar_bounds`,
+  `designer_scalars`, and opt-in `apply_designer_scalars`. Remaps raw assembly
+  coefficients to library-relative `[0, 1]` for UI and threshold authoring
+  without changing default pipeline output.
+
+### Changed
+
+- `PersonalityProfile` docstring and README clarify raw scalar clustering on
+  default composites (~0.35–0.62); author band guides apply to designer
+  remapped values.
+
 ## 0.2.0
 
 ### Fixed

@@ -135,16 +135,22 @@ class Stimulus:
 
 @dataclass(frozen=True)
 class PersonalityProfile:
-    """Complete personality composite for one character."""
+    """Complete personality composite for one character.
+
+    Scalar fields ``susceptibility``, ``rigidity``, and ``rumination`` are raw
+    assembly coefficients in nominal ``[0, 1]``. Default composites cluster in a
+    narrower band (~0.35–0.62). For author-facing ``[0, 1]`` readings use
+    ``animus.designer.designer_scalars`` with ``compute_scalar_bounds``.
+    """
 
     mbti_type: str
     sign: str
     resting_mood: MoodVector
     appraisal_baseline: AppraisalVector
     transform_matrix: TransformationMatrix
-    susceptibility: float
-    rigidity: float
-    rumination: float
+    susceptibility: float  # raw assembly; see designer_scalars for calibrated view
+    rigidity: float  # raw assembly; not yet used in feel/behave/decay pipeline
+    rumination: float  # raw assembly; see designer_scalars for calibrated view
     behavioral_baseline: BehavioralVector
 
 

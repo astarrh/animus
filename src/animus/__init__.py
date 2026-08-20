@@ -23,6 +23,13 @@ from animus.composite import (
     compute_blend_weight,
     generate_all_composites,
 )
+from animus.designer import (
+    DesignerScalars,
+    ScalarBounds,
+    apply_designer_scalars,
+    compute_scalar_bounds,
+    designer_scalars,
+)
 
 __all__ = [
     # Core types
@@ -48,4 +55,10 @@ __all__ = [
     "blend_composite",
     "compute_blend_weight",
     "generate_all_composites",
+    # Designer calibration (0.3)
+    "DesignerScalars",
+    "ScalarBounds",
+    "apply_designer_scalars",
+    "compute_scalar_bounds",
+    "designer_scalars",
 ]
