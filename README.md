@@ -133,7 +133,7 @@ Every composite exposes these attributes:
 | `appraisal_baseline` | `AppraisalVector` | −1…+1 | Habitual sense of control & certainty; added to every stimulus appraisal in `behave` |
 | `behavioral_baseline` | `BehavioralVector` | −1…+1 | Habitual outward lean before mood/situation offsets |
 | `transform_matrix` | `TransformationMatrix` | 5×5 | How mood dimensions push behavioral dimensions for this personality |
-| `susceptibility` | `float` | 0…1 nominal | Raw assembly coefficient; **default composites cluster ~0.36–0.61** — use `designer_scalars` for full-range author readings |
+| `susceptibility` | `float` | 0…1 nominal | Raw assembly coefficient; packaged JSON v2 composites span ~0.25–0.74 — still use `designer_scalars` for library-relative `[0, 1]` |
 | `rumination` | `float` | 0…1 nominal | Raw assembly coefficient; same clustering — use `designer_scalars` for calibrated view |
 | `rigidity` | `float` | 0…1 nominal | Raw assembly; in **`behave`**, scales mood→behavior offset by `(1 − rigidity)`. Default composites cluster ~0.33–0.62 — use `designer_scalars` for author readings |
 
@@ -143,14 +143,15 @@ composite. After blend, read the fields above.
 
 ### Raw vs designer scalars
 
-Assembly coefficients on `PersonalityProfile` are in nominal `[0, 1]` but **all
-192 default composites occupy only the middle third** (e.g. susceptibility
-~0.36–0.61). Do not threshold on raw values for UI, volatility formulas, or
-“high/low reactive” labels — use the designer calibration layer:
+Assembly coefficients on `PersonalityProfile` are in nominal `[0, 1]`. Packaged
+JSON **version 2** widens the composite band (susceptibility ~0.25–0.74,
+rigidity ~0.22–0.76) compared with version 1 (~0.35–0.62), but still does not
+use the full unit interval. Do not threshold on raw values for UI, volatility
+formulas, or “high/low reactive” labels — use the designer calibration layer:
 
 | Layer | Source | Range (packaged defaults) | Use for |
 |-------|--------|----------------------------|---------|
-| **Raw** | `profile.susceptibility`, `.rigidity`, `.rumination` | ~0.35–0.62 | Regression, building-block debugging, pipeline input |
+| **Raw** | `profile.susceptibility`, `.rigidity`, `.rumination` | ~0.22–0.76 (JSON v2 defaults) | Regression, building-block debugging, pipeline input |
 | **Designer** | `designer_scalars(profile, bounds)` | `[0, 1]` library-relative | UI labels, sorting, volatility formulas |
 | **Envelope** | `character_card` / `compute_envelope` | behavioral axis min/max | Action thresholds under reference stress |
 

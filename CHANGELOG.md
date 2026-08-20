@@ -19,13 +19,18 @@
 
 ### Changed
 
+- **Packaged building blocks JSON version 2 (Phase 3):** widened MBTI pole
+  and astrology element/modality scalars so default composites use more of
+  `[0, 1]`. Observed packaged ranges (approx.): susceptibility 0.25–0.74,
+  rigidity 0.22–0.76. **This changes `feel` / `behave` / `decay` output** for
+  games using packaged defaults. Sign tweaks are unchanged (±0.10). Parser
+  still accepts version 1 override files.
 - **`behave` pipeline (Phase 4):** mood→behavior offset is now
   `matrix × mood × susceptibility × (1 − rigidity)`. High-rigidity profiles
   stay closer to `behavioral_baseline`. `feel` / `decay` are unchanged. This
   changes `behave` output for existing callers using packaged composites.
-- `PersonalityProfile` docstring and README clarify raw scalar clustering on
-  default composites (~0.35–0.62); author band guides apply to designer
-  remapped values.
+- `PersonalityProfile` docstring and README distinguish raw assembly ranges
+  from designer-remapped `[0, 1]` readings.
 
 ## 0.2.0
 

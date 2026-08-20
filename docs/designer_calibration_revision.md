@@ -348,7 +348,9 @@ Bump `"version": 2` (see §10 migration).
 | P | 0.55 | **0.35** | 0.30 | **0.15** |
 | E, I, S, N | 0.40–0.55 | Widen ±0.10 toward poles | 0.40–0.55 | Widen ±0.10 |
 
-Exact values to be tuned in a spreadsheet pass; goal is:
+Exact values used in packaged JSON v2 (J/P susceptibility kept as
+Judging-less-reactive / Perceiving-more-reactive rather than the draft table’s
+swapped pair, so ISTJ-Cap stays among the least reactive):
 
 - Raw composite susceptibility range ≥ **0.20 – 0.80** (target; validate after retune).
 - Raw composite rigidity range ≥ **0.15 – 0.85** (target).
@@ -372,10 +374,10 @@ Before merging retune:
 
 ### 8.3 Acceptance criteria
 
-- [ ] Raw susceptibility spread ≥ 0.45 (max − min) on packaged defaults.
-- [ ] Raw rigidity spread ≥ 0.50.
-- [ ] Designer remap still works (now less aggressive correction).
-- [ ] CHANGELOG documents behavioral change for games using packaged JSON.
+- [x] Raw susceptibility spread ≥ 0.45 (max − min) on packaged defaults.
+- [x] Raw rigidity spread ≥ 0.50.
+- [x] Designer remap still works (now less aggressive correction).
+- [x] CHANGELOG documents behavioral change for games using packaged JSON.
 
 ---
 
@@ -515,7 +517,8 @@ After 0.3.0 ships, we should be able to demonstrate:
 
 | Metric | Before (0.2.0) | Target (0.3.0) |
 |--------|----------------|----------------|
-| Raw susceptibility spread | 0.25 | ≥ 0.45 (after Phase 3) |
+| Raw susceptibility spread | 0.25 | ≥ 0.45 (Phase 3: ~0.49) |
+| Raw rigidity spread | 0.29 | ≥ 0.50 (Phase 3: ~0.54) |
 | Designer reactivity spread | N/A | 1.0 by construction |
 | Author can answer "max aggression under standard crisis" | Playtest only | `character_card()` |
 | README documents raw vs designer | No | Yes |
@@ -545,9 +548,17 @@ Qualitative: external consumers (e.g. SleepersGame) report reduced guess-and-tes
 
 ---
 
-## 15. Appendix A — Empirical reference (packaged JSON v1, 2026-08-20)
+## 15. Appendix A — Empirical reference
 
-### Composite scalar ranges
+### Packaged JSON v2 (Phase 3)
+
+```
+susceptibility: [0.250, 0.739]  mean=0.484  stdev=0.103
+rigidity:       [0.220, 0.756]  mean=0.474  stdev=0.116
+rumination:     [0.267, 0.727]  mean=0.469  stdev=0.102
+```
+
+### Packaged JSON v1 (2026-08-20, historical)
 
 ```
 susceptibility: [0.362, 0.614]  mean=0.482  stdev=0.057

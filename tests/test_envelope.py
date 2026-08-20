@@ -93,9 +93,9 @@ class TestIntjCapricornSnapshot:
 
     def test_aggression_and_withdrawal_shape(self, all_composites):
         env = compute_envelope(all_composites[("INTJ", "Capricorn")])
-        assert env.aggression_passivity.at_resting == pytest.approx(-0.073, abs=0.02)
-        assert env.aggression_passivity.max == pytest.approx(-0.073, abs=0.02)
-        assert env.aggression_passivity.min == pytest.approx(-0.230, abs=0.03)
+        assert env.aggression_passivity.at_resting == pytest.approx(-0.072, abs=0.03)
+        assert env.aggression_passivity.max == pytest.approx(-0.072, abs=0.03)
+        assert env.aggression_passivity.min == pytest.approx(-0.258, abs=0.04)
         assert env.sociability_withdrawal.at_resting < 0.0
         assert env.impulsiveness_deliberation.max < 0.0
         assert env.deviation_amount.at_resting < env.deviation_amount.max

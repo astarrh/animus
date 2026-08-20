@@ -138,8 +138,9 @@ class PersonalityProfile:
     """Complete personality composite for one character.
 
     Scalar fields ``susceptibility``, ``rigidity``, and ``rumination`` are raw
-    assembly coefficients in nominal ``[0, 1]``. Default composites cluster in a
-    narrower band (~0.35–0.62). For author-facing ``[0, 1]`` readings use
+    assembly coefficients in nominal ``[0, 1]``. Packaged JSON v2 composites
+    span a wider band than v1 (~0.22–0.76 vs ~0.35–0.62) but still do not
+    occupy the full unit interval. For author-facing ``[0, 1]`` readings use
     ``animus.designer.designer_scalars`` with ``compute_scalar_bounds``.
     """
 

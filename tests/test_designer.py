@@ -32,13 +32,15 @@ def bounds(all_composites):
 # ---------------------------------------------------------------------------
 
 class TestComputeScalarBounds:
-    def test_all_192_composites_match_known_ranges(self, bounds):
-        assert bounds.susceptibility[0] == pytest.approx(0.362, abs=0.002)
-        assert bounds.susceptibility[1] == pytest.approx(0.614, abs=0.002)
-        assert bounds.rigidity[0] == pytest.approx(0.332, abs=0.002)
-        assert bounds.rigidity[1] == pytest.approx(0.619, abs=0.002)
-        assert bounds.rumination[0] == pytest.approx(0.361, abs=0.002)
-        assert bounds.rumination[1] == pytest.approx(0.614, abs=0.002)
+    def test_all_192_composites_meet_spread_targets(self, bounds):
+        susc_spread = bounds.susceptibility[1] - bounds.susceptibility[0]
+        rigid_spread = bounds.rigidity[1] - bounds.rigidity[0]
+        assert susc_spread >= 0.45
+        assert rigid_spread >= 0.50
+        assert bounds.susceptibility[0] <= 0.30
+        assert bounds.susceptibility[1] >= 0.70
+        assert bounds.rigidity[0] <= 0.25
+        assert bounds.rigidity[1] >= 0.70
 
     def test_accepts_iterable_of_profiles(self, all_composites):
         profiles = list(all_composites.values())

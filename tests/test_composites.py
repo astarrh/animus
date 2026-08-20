@@ -27,7 +27,6 @@ from animus.models import (
     PersonalityProfile,
     Stimulus,
 )
-from animus.personalities import INTJ_CAPRICORN
 
 
 @pytest.fixture(scope="module")
@@ -82,41 +81,47 @@ class TestCompositeGeneration:
 # ---------------------------------------------------------------------------
 
 class TestINTJCapricornRegression:
-    """The INTJ-Capricorn composite must match the Phase 1 hardcoded personality."""
+    """INTJ-Capricorn stays a stoic/rigid archetype after JSON v2 retune.
 
-    def test_intj_capricorn_matches_phase1_profile(self, all_composites):
+    Phase-1 hardcoded ``INTJ_CAPRICORN`` is a historical hand profile; scalar
+    equality is not required after building-block version 2.
+    """
+
+    def test_intj_capricorn_labels(self, all_composites):
         composite = all_composites[("INTJ", "Capricorn")]
-        # Same types
-        assert composite.mbti_type == INTJ_CAPRICORN.mbti_type
-        assert composite.sign == INTJ_CAPRICORN.sign
-        # Coefficients match within tolerance (Excel + matrices may differ slightly from hand-authored)
-        assert abs(composite.susceptibility - INTJ_CAPRICORN.susceptibility) < 0.02
-        assert abs(composite.rigidity - INTJ_CAPRICORN.rigidity) < 0.02
-        assert abs(composite.rumination - INTJ_CAPRICORN.rumination) < 0.02
-        # Appraisal baseline
-        assert abs(composite.appraisal_baseline.control - INTJ_CAPRICORN.appraisal_baseline.control) < 0.02
-        assert abs(composite.appraisal_baseline.certainty - INTJ_CAPRICORN.appraisal_baseline.certainty) < 0.02
-        # Resting mood and behavioral baseline: same general shape.
-        # Wider tolerance: Phase-1 hand profiles lag intentional E/I sociability retunes.
-        for i in range(5):
-            assert abs(composite.resting_mood.to_list()[i] - INTJ_CAPRICORN.resting_mood.to_list()[i]) < 0.25
-            assert abs(composite.behavioral_baseline.to_list()[i] - INTJ_CAPRICORN.behavioral_baseline.to_list()[i]) < 0.25
+        assert composite.mbti_type == "INTJ"
+        assert composite.sign == "Capricorn"
 
-    def test_intj_capricorn_behaves_like_phase1(self, all_composites):
-        """Same stimulus: composite INTJ-Capricorn and Phase 1 INTJ-Capricorn produce similar output."""
+    def test_intj_capricorn_is_among_least_reactive(self, all_composites):
+        ranked = sorted(all_composites.values(), key=lambda p: p.susceptibility)
+        cutoff = ranked[int(len(ranked) * 0.15)]
+        composite = all_composites[("INTJ", "Capricorn")]
+        assert composite.susceptibility <= cutoff.susceptibility + 1e-12
+
+    def test_intj_capricorn_behaves_stoic(self, all_composites):
         composite = all_composites[("INTJ", "Capricorn")]
         stimulus = Stimulus(
             appraisal=AppraisalVector(control=0.3, certainty=-0.2),
             behavioral={"threat": 0.3, "urgency": 0.5, "social_context": 0.6},
         )
-        rng = random.Random(42)
-        # Compare at intensity=0 (unamplified) so gain does not magnify tiny profile drift.
-        result_composite = behave(composite, stimulus, intensity=0.0, rng=rng)
-        result_phase1 = behave(INTJ_CAPRICORN, stimulus, intensity=0.0, rng=rng)
-        # Behavioral vectors should be close (same personality concept)
-        for i in range(5):
-            diff = abs(result_composite.behavioral_vector.to_list()[i] - result_phase1.behavioral_vector.to_list()[i])
-            assert diff < 0.25, f"Dimension {i} differs too much: composite vs phase1"
+        result = behave(composite, stimulus, intensity=0.0)
+        bv = result.behavioral_vector
+        assert bv.impulsiveness_deliberation < 0.0
+        assert bv.sociability_withdrawal < 0.0
+        assert bv.aggression_passivity < 0.2
+
+    def test_archetype_rank_order_preserved(self, all_composites):
+        """Retune must not invert stoic vs reactive / rigid vs flexible extremes."""
+        susc = sorted(all_composites, key=lambda k: all_composites[k].susceptibility)
+        rigid = sorted(all_composites, key=lambda k: all_composites[k].rigidity)
+        n = len(susc)
+        low_s, high_s = set(susc[: n // 5]), set(susc[-n // 5 :])
+        low_r, high_r = set(rigid[: n // 5]), set(rigid[-n // 5 :])
+        assert ("ISTJ", "Capricorn") in low_s
+        assert ("INTJ", "Capricorn") in low_s
+        assert ("ENFP", "Pisces") in high_s
+        assert ("ENFP", "Gemini") in low_r
+        assert ("ISTJ", "Taurus") in high_r
 
 
 # ---------------------------------------------------------------------------
@@ -206,9 +211,15 @@ class TestLayerDominance:
         neutral = blend_composite(mb, sign, global_bias=0.0)
         mb_dominant = blend_composite(mb, sign, global_bias=1.0)
         sign_dominant = blend_composite(mb, sign, global_bias=-1.0)
-        # MB-dominant should have higher rigidity/rumination (INTJ traits) than sign-dominant
-        assert mb_dominant.rigidity >= sign_dominant.rigidity - 0.01
-        assert mb_dominant.rumination >= sign_dominant.rumination - 0.01
+        # The more-rigid layer should pull rigidity when bias favors that layer.
+        if mb.rigidity >= sign.rigidity:
+            assert mb_dominant.rigidity >= sign_dominant.rigidity - 0.01
+        else:
+            assert sign_dominant.rigidity >= mb_dominant.rigidity - 0.01
+        if mb.rumination >= sign.rumination:
+            assert mb_dominant.rumination >= sign_dominant.rumination - 0.01
+        else:
+            assert sign_dominant.rumination >= mb_dominant.rumination - 0.01
 
     def test_global_bias_negative_shifts_toward_astrology(self, library):
         """Bias -1.0 → composite closer to sign than with bias 0 or +1."""
