@@ -14,9 +14,15 @@
   `character_card`, and `python -m animus.tools.export_character_cards`.
   Authors can read per-profile behavioral min/max under a shipped severity
   ladder (resting → mild irritation → moderate conflict → severe crisis).
+- **`BehaveResult.flexibility_factor`:** `1 − clamp(rigidity, 0, 1)`, reported
+  alongside `rigidity_indicator`.
 
 ### Changed
 
+- **`behave` pipeline (Phase 4):** mood→behavior offset is now
+  `matrix × mood × susceptibility × (1 − rigidity)`. High-rigidity profiles
+  stay closer to `behavioral_baseline`. `feel` / `decay` are unchanged. This
+  changes `behave` output for existing callers using packaged composites.
 - `PersonalityProfile` docstring and README clarify raw scalar clustering on
   default composites (~0.35–0.62); author band guides apply to designer
   remapped values.

@@ -6,7 +6,8 @@ a behavioral vector describing how the character acts.
 Pipeline:
   1. appraisal = personality.appraisal_baseline + stimulus.appraisal
   2. modulated_matrix = personality.transform_matrix × appraisal_weights(appraisal)
-  3. behavioral_offset = modulated_matrix × mood_vector × personality.susceptibility
+  3. flexibility = 1 - rigidity
+     behavioral_offset = modulated_matrix × mood × susceptibility × flexibility
   4. personality_output = personality.behavioral_baseline + behavioral_offset
   5. gained = personality_output × gain(intensity)
      where gain = 1 + intensity × (MAX_INTENSITY_GAIN - 1)
@@ -54,7 +55,7 @@ def behave(
 
     Returns:
         BehaveResult with behavioral_vector, conflict_flag, rigidity_indicator,
-        and deviation_amount.
+        flexibility_factor, and deviation_amount.
     """
     del rng  # Noise override removed; keep parameter for call-site compatibility.
 
@@ -71,10 +72,14 @@ def behave(
     appraisal_weights = _compute_appraisal_weights(appraisal)
     modulated_matrix = personality.transform_matrix.scale(appraisal_weights)
 
-    # Step 3: Compute behavioral offset = modulated_matrix × mood × susceptibility
+    # Step 3: offset = matrix × mood × susceptibility × flexibility
+    # High rigidity keeps the pawn closer to behavioral_baseline.
     mood_list = mood.to_list()
     raw_offset = modulated_matrix.multiply(mood_list)
-    behavioral_offset = [v * personality.susceptibility for v in raw_offset]
+    rigidity = max(0.0, min(1.0, personality.rigidity))
+    flexibility = 1.0 - rigidity
+    scale = personality.susceptibility * flexibility
+    behavioral_offset = [v * scale for v in raw_offset]
 
     # Step 4: personality_output = behavioral_baseline + behavioral_offset
     baseline = personality.behavioral_baseline.to_list()
@@ -94,6 +99,7 @@ def behave(
         behavioral_vector=final,
         conflict_flag=False,  # No external pressure in Phase 1
         rigidity_indicator=personality.rigidity,
+        flexibility_factor=flexibility,
         deviation_amount=deviation,
     )
 

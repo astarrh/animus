@@ -135,7 +135,7 @@ Every composite exposes these attributes:
 | `transform_matrix` | `TransformationMatrix` | 5×5 | How mood dimensions push behavioral dimensions for this personality |
 | `susceptibility` | `float` | 0…1 nominal | Raw assembly coefficient; **default composites cluster ~0.36–0.61** — use `designer_scalars` for full-range author readings |
 | `rumination` | `float` | 0…1 nominal | Raw assembly coefficient; same clustering — use `designer_scalars` for calibrated view |
-| `rigidity` | `float` | 0…1 nominal | Raw assembly; echoed on `BehaveResult`; **not yet used inside the pipeline math** |
+| `rigidity` | `float` | 0…1 nominal | Raw assembly; in **`behave`**, scales mood→behavior offset by `(1 − rigidity)`. Default composites cluster ~0.33–0.62 — use `designer_scalars` for author readings |
 
 Note: **`assertiveness` is not on `PersonalityProfile`**. It exists on MBTI /
 sign *building blocks* and is consumed only when blending them into a
@@ -257,10 +257,6 @@ Controls `decay` only:
 decayed = resting + (current - resting) × e^(-elapsed / rumination)
 ```
 
-High rumination → mood lingers across turns/scenes. Low → quick return to
-`resting_mood`. Use it when deciding how long a compliment, insult, or spat
-should still color the pawn.
-
 High persistence (or raw rumination) → mood lingers across turns/scenes. Low →
 quick return to `resting_mood`. Use `designer_scalars(...).persistence` when
 ranking composites for how long a compliment, insult, or spat should still
@@ -268,11 +264,27 @@ color the pawn.
 
 #### Raw `rigidity` / designer `inflexibility` (0 = flexible, 1 = rigid)
 
-Available on the profile and echoed as `BehaveResult.rigidity_indicator`.
-**Animus does not currently change `feel`/`behave`/`decay` from this value.**
-Use `designer_scalars(...).inflexibility` (or `.flexibility`) for author reads.
-Authors may still use it in their own runtime (e.g. resist changing plans,
-harder to talk down) until the engine wires it in (planned 0.3).
+In **`behave` only**, rigidity damps the mood-driven offset:
+
+```text
+flexibility = 1 − rigidity
+offset = matrix × mood × susceptibility × flexibility
+```
+
+High rigidity → the pawn stays closer to `behavioral_baseline` even when mood
+is severe (stuck in patterns). Low rigidity → mood shows more in outward
+lean. `feel` and `decay` are unchanged.
+
+`BehaveResult.rigidity_indicator` is the raw coefficient;
+`BehaveResult.flexibility_factor` is `1 − clamp(rigidity, 0, 1)`.
+
+Use `designer_scalars(...).inflexibility` (or `.flexibility`) for author-facing
+ranks. Authors can still use rigidity in their own runtime (resist changing
+plans, harder to talk down) in addition to this pipeline effect.
+
+Susceptibility still scales **both** `feel` (mood delta) and `behave` (offset).
+That is intentional for 0.3: reactive types move more internally *and* express
+more. Rigidity only affects the expression stage.
 
 ### How to interpret the baselines
 
@@ -390,7 +402,7 @@ Pipeline (simplified):
 
 1. `appraisal = personality.baseline + stimulus.appraisal`
 2. Scale the mood→behavior matrix by appraisal (control/certainty pathways)
-3. `offset = matrix × mood × susceptibility`
+3. `offset = matrix × mood × susceptibility × (1 − rigidity)`
 4. `personality_output = behavioral_baseline + offset`
 5. Apply **intensity as gain**: `gain = 1 + intensity × (MAX_INTENSITY_GAIN - 1)`  
    (`MAX_INTENSITY_GAIN` is 4.0 today → intensity `0` keeps the authored signal; `1` amplifies up to 4×)
@@ -406,7 +418,7 @@ deterministic for the same inputs (`rng` is accepted but unused).
 | `1.0` | Maximum expressiveness (4×, then clamp) |
 
 `BehaveResult` also includes `conflict_flag` (always `False` for now),
-`rigidity_indicator`, and `deviation_amount` from baseline.
+`rigidity_indicator`, `flexibility_factor`, and `deviation_amount` from baseline.
 
 ### Same situation, different personalities
 
@@ -630,11 +642,11 @@ tests/
 - Building blocks are authored in JSON; the Excel pipeline is deprecated.
 - **Designer calibration (0.3):** `compute_scalar_bounds`, `designer_scalars`,
   optional `apply_designer_scalars`, plus `compute_envelope` /
-  `character_card` for reference behavioral limits. See
+  `character_card` for reference behavioral limits. `rigidity` now damps the
+  mood→behavior offset in `behave` (`flexibility = 1 − rigidity`). See
   `docs/designer_calibration_revision.md` for the full roadmap.
 - `Stimulus.behavioral` tags are stored but **not** consumed yet.
 - `conflict_flag` / external social pressure is **not** implemented (`False`).
-- `rigidity` is returned on behave results but does not yet alter the pipeline.
 
 ## License
 

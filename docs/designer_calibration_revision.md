@@ -25,8 +25,9 @@ This creates two related failures:
 
 Additionally:
 
-- `rigidity` is returned on `BehaveResult` but **does not affect** `feel`, `behave`, or `decay`.
-- `susceptibility` scales both `feel` (mood delta) and `behave` (mood→behavior offset), so reactivity is nonlinear; outer limits depend on the full loop.
+- `rigidity` damps the mood→behavior offset in `behave` (`flexibility = 1 − rigidity`).
+  `feel` / `decay` are unchanged.
+- `susceptibility` scales both `feel` (mood delta) and `behave` (offset), so reactivity is nonlinear; outer limits depend on the full loop.
 - `_normalize_coeff` clamping is not the cause — it never fires on current data.
 
 **User-visible symptom:** Pawns feel more generic than designers expect; behaviors are harder to parse and threshold without guess-and-test.
@@ -422,9 +423,9 @@ Phase 4 should include a design decision document on whether susceptibility shou
 
 ### 9.4 Acceptance criteria
 
-- [ ] `rigidity` documented as active in behave pipeline.
-- [ ] README "not yet used" note removed.
-- [ ] Regression tests for INTJ-Cap, ESTP-Aries updated with tolerances.
+- [x] `rigidity` documented as active in behave pipeline.
+- [x] README "not yet used" note removed.
+- [x] Regression tests for INTJ-Cap, ESTP-Aries updated with tolerances.
 
 ---
 
@@ -504,7 +505,7 @@ Phase 4 should include a design decision document on whether susceptibility shou
 
 ### 12.5 Rigidity in feel
 
-Defer until Phase 4 design review completes. Envelope tooling will show whether behavioral-only wiring is sufficient.
+**Resolved for 0.3:** rigidity is **behave-only**. Envelope tooling and tests confirm mood still moves under `feel`; only outward lean is damped. Revisit if authors need emotional stiffness as well.
 
 ---
 

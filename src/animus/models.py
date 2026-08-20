@@ -149,7 +149,7 @@ class PersonalityProfile:
     appraisal_baseline: AppraisalVector
     transform_matrix: TransformationMatrix
     susceptibility: float  # raw assembly; see designer_scalars for calibrated view
-    rigidity: float  # raw assembly; not yet used in feel/behave/decay pipeline
+    rigidity: float  # raw assembly; scales mood→behavior offset in behave (flexibility = 1 - rigidity)
     rumination: float  # raw assembly; see designer_scalars for calibrated view
     behavioral_baseline: BehavioralVector
 
@@ -162,6 +162,7 @@ class BehaveResult:
     conflict_flag: bool
     rigidity_indicator: float
     deviation_amount: float
+    flexibility_factor: float = 1.0
 
 
 @dataclass(frozen=True)

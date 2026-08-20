@@ -88,6 +88,8 @@ class TestBeeInTent:
         assert isinstance(result.behavioral_vector, BehavioralVector)
         assert isinstance(result.conflict_flag, bool)
         assert isinstance(result.rigidity_indicator, float)
+        assert isinstance(result.flexibility_factor, float)
+        assert result.flexibility_factor == pytest.approx(1.0 - personality.rigidity)
         assert isinstance(result.deviation_amount, float)
 
 
@@ -102,8 +104,13 @@ class TestMoodVariation:
     def test_distressed_mood_increases_deliberation(self, personality, bee_stimulus, rng):
         """Distressed INTJ-Cap should become more deliberate (not impulsive)."""
         distressed = MoodVector(-0.7, -0.5, -0.3, -0.3, 0.7)
-        result_distressed = behave(personality, bee_stimulus, intensity=0.8, mood=distressed, rng=rng)
-        result_resting = behave(personality, bee_stimulus, intensity=0.8, rng=random.Random(42))
+        # Unamplified so the comparison is not flattened by ±1 clamp.
+        result_distressed = behave(
+            personality, bee_stimulus, intensity=0.0, mood=distressed, rng=rng,
+        )
+        result_resting = behave(
+            personality, bee_stimulus, intensity=0.0, rng=random.Random(42),
+        )
 
         # Distress should push toward more deliberation (more negative impulsiveness)
         assert (result_distressed.behavioral_vector.impulsiveness_deliberation
@@ -379,3 +386,63 @@ class TestPersonalityComparison:
         """ESTP-Aries (Perceiving) should be less rigid than INTJ-Capricorn (Judging)."""
         assert estp_aries.rigidity < INTJ_CAPRICORN.rigidity, \
             "ESTP-Aries should be less rigid than INTJ-Capricorn"
+
+
+# ---------------------------------------------------------------------------
+# 8. Rigidity scales mood→behavior offset
+# ---------------------------------------------------------------------------
+
+class TestRigidityWiring:
+    """High rigidity keeps output closer to behavioral_baseline; rigidity=0
+    leaves the offset scaled only by susceptibility.
+    """
+
+    @pytest.fixture
+    def stimulus(self):
+        return Stimulus(appraisal=AppraisalVector(control=0.3, certainty=-0.2))
+
+    @pytest.fixture
+    def distressed(self):
+        return MoodVector(-0.7, -0.5, -0.3, -0.3, 0.7)
+
+    def test_high_rigidity_smaller_deviation_than_low(self, stimulus, distressed):
+        from dataclasses import replace
+
+        high = replace(INTJ_CAPRICORN, rigidity=0.9)
+        low = replace(INTJ_CAPRICORN, rigidity=0.1)
+        assert high.susceptibility == low.susceptibility
+        r_high = behave(high, stimulus, intensity=0.0, mood=distressed)
+        r_low = behave(low, stimulus, intensity=0.0, mood=distressed)
+        assert r_high.deviation_amount < r_low.deviation_amount
+        assert r_high.flexibility_factor == pytest.approx(0.1)
+        assert r_low.flexibility_factor == pytest.approx(0.9)
+
+    def test_zero_rigidity_offset_scaled_only_by_susceptibility(self, stimulus, distressed):
+        from dataclasses import replace
+
+        flexible = replace(INTJ_CAPRICORN, rigidity=0.0)
+        result = behave(flexible, stimulus, intensity=0.0, mood=distressed)
+        assert result.flexibility_factor == pytest.approx(1.0)
+        assert result.rigidity_indicator == pytest.approx(0.0)
+
+    def test_full_rigidity_stays_on_baseline_at_zero_intensity(self, stimulus, distressed):
+        from dataclasses import replace
+
+        locked = replace(INTJ_CAPRICORN, rigidity=1.0)
+        result = behave(locked, stimulus, intensity=0.0, mood=distressed)
+        assert result.flexibility_factor == pytest.approx(0.0)
+        for a, b in zip(
+            result.behavioral_vector.to_list(),
+            locked.behavioral_baseline.to_list(),
+        ):
+            assert a == pytest.approx(b, abs=1e-9)
+
+    def test_feel_unaffected_by_rigidity(self):
+        from dataclasses import replace
+        from animus import feel
+
+        situation = MoodVector(-0.5, -0.3, -0.4, -0.2, 0.6)
+        high = replace(INTJ_CAPRICORN, rigidity=0.95)
+        low = replace(INTJ_CAPRICORN, rigidity=0.05)
+        assert feel(situation, high).mood_delta == feel(situation, low).mood_delta
+
