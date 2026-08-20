@@ -2,7 +2,8 @@
 
 JSON is the preferred authoring format. The schema is versioned
 (`format: animus.building_blocks`) and organized per component so browser
-editors and game overrides stay readable.
+editors and game overrides stay readable. Packaged defaults are version 2;
+version 1 files still parse.
 """
 
 from __future__ import annotations
@@ -55,8 +56,10 @@ def raw_from_dict(data: dict) -> RawExcelData:
             f"Unsupported JSON format {fmt!r}; expected 'animus.building_blocks'"
         )
     version = data.get("version")
-    if version != 1:
-        raise ValueError(f"Unsupported building-blocks version {version!r}; expected 1")
+    if version not in (1, 2):
+        raise ValueError(
+            f"Unsupported building-blocks version {version!r}; expected 1 or 2"
+        )
 
     mbti_poles = data["mbti_poles"]
     astrology = data["astrology"]

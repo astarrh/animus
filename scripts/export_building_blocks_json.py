@@ -43,6 +43,7 @@ def export_dict(raw) -> dict:
         }
 
     return {
+        # Excel export is a legacy snapshot (v1). Packaged defaults are version 2.
         "version": 1,
         "format": "animus.building_blocks",
         "dimensions": {

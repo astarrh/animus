@@ -1,5 +1,40 @@
 # Changelog
 
+Developer-facing 0.3 write-up (breaking changes, APIs, migration):
+[`docs/PATCH_NOTES_0.3.md`](docs/PATCH_NOTES_0.3.md).
+
+## Unreleased
+
+### Added
+
+- **Designer calibration (Phase 1):** `animus.designer` module with
+  `ScalarBounds`, `DesignerScalars`, `compute_scalar_bounds`,
+  `designer_scalars`, and opt-in `apply_designer_scalars`. Remaps raw assembly
+  coefficients to library-relative `[0, 1]` for UI and threshold authoring
+  without changing default pipeline output.
+- **Reference envelopes (Phase 2):** `animus.envelope` module with
+  `REFERENCE_SITUATIONS`, `compute_envelope`, `compute_all_envelopes`,
+  `character_card`, and `python -m animus.tools.export_character_cards`.
+  Authors can read per-profile behavioral min/max under a shipped severity
+  ladder (resting → mild irritation → moderate conflict → severe crisis).
+- **`BehaveResult.flexibility_factor`:** `1 − clamp(rigidity, 0, 1)`, reported
+  alongside `rigidity_indicator`.
+
+### Changed
+
+- **Packaged building blocks JSON version 2 (Phase 3):** widened MBTI pole
+  and astrology element/modality scalars so default composites use more of
+  `[0, 1]`. Observed packaged ranges (approx.): susceptibility 0.25–0.74,
+  rigidity 0.22–0.76. **This changes `feel` / `behave` / `decay` output** for
+  games using packaged defaults. Sign tweaks are unchanged (±0.10). Parser
+  still accepts version 1 override files.
+- **`behave` pipeline (Phase 4):** mood→behavior offset is now
+  `matrix × mood × susceptibility × (1 − rigidity)`. High-rigidity profiles
+  stay closer to `behavioral_baseline`. `feel` / `decay` are unchanged. This
+  changes `behave` output for existing callers using packaged composites.
+- `PersonalityProfile` docstring and README distinguish raw assembly ranges
+  from designer-remapped `[0, 1]` readings.
+
 ## 0.2.0
 
 ### Fixed

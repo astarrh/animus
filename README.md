@@ -133,48 +133,124 @@ Every composite exposes these attributes:
 | `appraisal_baseline` | `AppraisalVector` | −1…+1 | Habitual sense of control & certainty; added to every stimulus appraisal in `behave` |
 | `behavioral_baseline` | `BehavioralVector` | −1…+1 | Habitual outward lean before mood/situation offsets |
 | `transform_matrix` | `TransformationMatrix` | 5×5 | How mood dimensions push behavioral dimensions for this personality |
-| `susceptibility` | `float` | 0…1 | How strongly situations move this character |
-| `rumination` | `float` | 0…1 | How slowly mood returns to resting under `decay` |
-| `rigidity` | `float` | 0…1 | Exposed for authors / returned on `BehaveResult`; **not yet used inside the pipeline math** |
+| `susceptibility` | `float` | 0…1 nominal | Raw assembly coefficient; packaged JSON v2 composites span ~0.25–0.74 — still use `designer_scalars` for library-relative `[0, 1]` |
+| `rumination` | `float` | 0…1 nominal | Raw assembly coefficient; same clustering — use `designer_scalars` for calibrated view |
+| `rigidity` | `float` | 0…1 nominal | Raw assembly; in **`behave`**, scales mood→behavior offset by `(1 − rigidity)`. Default composites cluster ~0.33–0.62 — use `designer_scalars` for author readings |
 
 Note: **`assertiveness` is not on `PersonalityProfile`**. It exists on MBTI /
 sign *building blocks* and is consumed only when blending them into a
 composite. After blend, read the fields above.
 
-### How to interpret the scalars
+### Raw vs designer scalars
 
-#### `susceptibility` (0 = thick-skinned, 1 = highly reactive)
+Assembly coefficients on `PersonalityProfile` are in nominal `[0, 1]`. Packaged
+JSON **version 2** widens the composite band (susceptibility ~0.25–0.74,
+rigidity ~0.22–0.76) compared with version 1 (~0.35–0.62), but still does not
+use the full unit interval. Do not threshold on raw values for UI, volatility
+formulas, or “high/low reactive” labels — use the designer calibration layer:
 
-The main dial for “how much does this pawn move?”
-
-- In **`feel`**: `mood_delta = situation_vector × susceptibility` (per axis).  
-  Same compliment vector → smaller delta for low susceptibility, larger for high.
-- In **`behave`**: scales the mood→behavior offset the same way.
-
-Author reads:
+| Layer | Source | Range (packaged defaults) | Use for |
+|-------|--------|----------------------------|---------|
+| **Raw** | `profile.susceptibility`, `.rigidity`, `.rumination` | ~0.22–0.76 (JSON v2 defaults) | Regression, building-block debugging, pipeline input |
+| **Designer** | `designer_scalars(profile, bounds)` | `[0, 1]` library-relative | UI labels, sorting, volatility formulas |
+| **Envelope** | `character_card` / `compute_envelope` | behavioral axis min/max | Action thresholds under reference stress |
 
 ```python
-if pawn.personality.susceptibility < 0.4:
-    # muted emotional swings — good stand-in for cynical / guarded / steady
-    ...
-elif pawn.personality.susceptibility > 0.55:
-    # wears heart on sleeve — strong mood moves from the same events
+from animus import compute_scalar_bounds, designer_scalars, generate_all_composites
+from animus.data_pipeline import assemble, load_building_blocks
+
+library = assemble(load_building_blocks())
+composites = generate_all_composites(library)
+bounds = compute_scalar_bounds(composites)
+
+profile = composites[("INFP", "Pisces")]
+ds = designer_scalars(profile, bounds)
+# ds.reactivity      — 0 = most stoic in library, 1 = most reactive
+# ds.inflexibility   — 0 = most flexible, 1 = most rigid
+# ds.persistence     — 0 = snaps back fastest, 1 = lingers longest
+# ds.flexibility     — alias for 1 - ds.inflexibility
+
+# Example volatility index on calibrated inputs
+R = 0.6 * ds.reactivity + 0.4 * ds.flexibility
+```
+
+Recompute `bounds` when you load a custom building-blocks JSON — bounds are
+**library-relative**, not universal constants.
+
+**Opt-in pipeline remap:** `apply_designer_scalars(profile, bounds)` returns a
+new profile with remapped coefficients inside `feel` / `behave` / `decay`.
+Default is off; most games keep raw coefficients in the pipeline and use
+designer scalars only for display and thresholds.
+
+### Reference envelopes
+
+Designer scalars tell you *how reactive a pawn is relative to the library*.
+Envelopes tell you *how far that pawn can lean on each behavioral axis* under
+a shipped severity ladder, so you can author thresholds without playtesting
+every composite.
+
+Each probe runs the full **`feel` → `behave`** loop from `resting_mood`.
+
+| Name | Label | Situation (dc, fc, ib, sp, arousal) | Appraisal (control, certainty) | Intensity |
+|------|-------|--------------------------------------|--------------------------------|-----------|
+| `resting` | Baseline at equilibrium | (0, 0, 0, 0, 0) | (0, 0) | 0.0 |
+| `mild_irritation` | Everyday friction | (−0.25, 0.10, −0.20, 0.15, 0.35) | (0.25, −0.20) | 0.5 |
+| `moderate_conflict` | Clear interpersonal stress | (−0.50, −0.30, −0.40, −0.20, 0.60) | (−0.30, −0.30) | 0.5 |
+| `severe_crisis` | Breaking-point probe | (−0.80, −0.70, −0.60, −0.50, 0.90) | (−0.50, −0.60) | 1.0 |
+
+```python
+from animus import character_card, compute_envelope, compute_scalar_bounds
+
+envelope = compute_envelope(profile)
+# envelope.aggression_passivity.min / .max / .at_resting
+
+card = character_card(profile, bounds)
+# card["envelope"]["aggression_passivity"] → {min, max, at_resting}
+# card["designer_scalars"]["reactivity"] …
+
+agg = card["envelope"]["aggression_passivity"]
+if agg["max"] > 0.7:
+    # this composite can snap under the standard crisis probe
     ...
 ```
 
-This is **reactivity**, not a named trait like “cynical.” Distrusting a
-compliment’s *meaning* is still a game-side choice of input vector; low
-susceptibility only means the vector you *do* send moves them less.
+Export all 192 packaged-default cards:
 
-Rough band guide (composites vary; treat as soft):
+```bash
+python -m animus.tools.export_character_cards --output cards.json
+```
+
+Games may pass a custom `situations=` tuple; bounds and envelopes should use
+the same composite set you actually spawn.
+
+### How to interpret the scalars
+
+#### Raw `susceptibility` (assembly coefficient)
+
+The main dial for “how much does this pawn move?” in the pipeline:
+
+- In **`feel`**: `mood_delta = situation_vector × susceptibility` (per axis).
+- In **`behave`**: scales the mood→behavior offset the same way.
+
+Raw values on default composites are clustered; compare using
+`designer_scalars(...).reactivity` instead of raw thresholds like `< 0.4`.
+
+#### Designer `reactivity` (calibrated susceptibility)
+
+After remap, band guide for author reads:
 
 | Band | Reading |
 |------|---------|
-| ~0.30–0.40 | Steady / less moved by events |
-| ~0.40–0.55 | Typical mid-range |
-| ~0.55–0.65+ | Emotionally responsive |
+| ~0.0–0.25 | Most stoic composites in your library |
+| ~0.25–0.75 | Mid spread |
+| ~0.75–1.0 | Most reactive composites in your library |
 
-#### `rumination` (0 = snaps back, 1 = stews)
+This is **reactivity**, not a named trait like “cynical.” Distrusting a
+compliment’s *meaning* is still a game-side choice of input vector; low
+reactivity only means the vector you *do* send moves them less (relative to
+other composites in the same library).
+
+#### Raw `rumination` / designer `persistence` (0 = snaps back, 1 = stews)
 
 Controls `decay` only:
 
@@ -182,16 +258,34 @@ Controls `decay` only:
 decayed = resting + (current - resting) × e^(-elapsed / rumination)
 ```
 
-High rumination → mood lingers across turns/scenes. Low → quick return to
-`resting_mood`. Use it when deciding how long a compliment, insult, or spat
-should still color the pawn.
+High persistence (or raw rumination) → mood lingers across turns/scenes. Low →
+quick return to `resting_mood`. Use `designer_scalars(...).persistence` when
+ranking composites for how long a compliment, insult, or spat should still
+color the pawn.
 
-#### `rigidity` (0 = flexible, 1 = rigid)
+#### Raw `rigidity` / designer `inflexibility` (0 = flexible, 1 = rigid)
 
-Available on the profile and echoed as `BehaveResult.rigidity_indicator`.
-**Animus does not currently change `feel`/`behave`/`decay` from this value.**
-Authors may still use it in their own runtime (e.g. resist changing plans,
-harder to talk down) until the engine wires it in.
+In **`behave` only**, rigidity damps the mood-driven offset:
+
+```text
+flexibility = 1 − rigidity
+offset = matrix × mood × susceptibility × flexibility
+```
+
+High rigidity → the pawn stays closer to `behavioral_baseline` even when mood
+is severe (stuck in patterns). Low rigidity → mood shows more in outward
+lean. `feel` and `decay` are unchanged.
+
+`BehaveResult.rigidity_indicator` is the raw coefficient;
+`BehaveResult.flexibility_factor` is `1 − clamp(rigidity, 0, 1)`.
+
+Use `designer_scalars(...).inflexibility` (or `.flexibility`) for author-facing
+ranks. Authors can still use rigidity in their own runtime (resist changing
+plans, harder to talk down) in addition to this pipeline effect.
+
+Susceptibility still scales **both** `feel` (mood delta) and `behave` (offset).
+That is intentional for 0.3: reactive types move more internally *and* express
+more. Rigidity only affects the expression stage.
 
 ### How to interpret the baselines
 
@@ -236,7 +330,11 @@ UI, save data, and designer tools (“this pawn is ESTP-Aries”).
 ### Loading and attaching to a pawn
 
 ```python
+from animus import compute_scalar_bounds, designer_scalars, generate_all_composites
+from animus.data_pipeline import assemble, load_building_blocks
+
 composites = generate_all_composites(assemble(load_building_blocks()))
+bounds = compute_scalar_bounds(composites)
 
 pawn = {
     "personality": composites[("ESFP", "Leo")],
@@ -244,11 +342,13 @@ pawn = {
 }
 pawn["mood"] = pawn["personality"].resting_mood
 
-# Designer-facing reads — all public attributes
+# Designer-facing reads — calibrated to [0, 1] within your library
 p = pawn["personality"]
+ds = designer_scalars(p, bounds)
 print(p.mbti_type, p.sign)
-print("reactivity", p.susceptibility)
-print("lingers", p.rumination)
+print("reactivity", ds.reactivity, "(raw susceptibility", p.susceptibility, ")")
+print("persistence", ds.persistence)
+print("flexibility", ds.flexibility)
 print("resting belonging", p.resting_mood.isolation_belonging)
 print("baseline sociability", p.behavioral_baseline.sociability_withdrawal)
 print("habitual control", p.appraisal_baseline.control)
@@ -303,7 +403,7 @@ Pipeline (simplified):
 
 1. `appraisal = personality.baseline + stimulus.appraisal`
 2. Scale the mood→behavior matrix by appraisal (control/certainty pathways)
-3. `offset = matrix × mood × susceptibility`
+3. `offset = matrix × mood × susceptibility × (1 − rigidity)`
 4. `personality_output = behavioral_baseline + offset`
 5. Apply **intensity as gain**: `gain = 1 + intensity × (MAX_INTENSITY_GAIN - 1)`  
    (`MAX_INTENSITY_GAIN` is 4.0 today → intensity `0` keeps the authored signal; `1` amplifies up to 4×)
@@ -319,7 +419,7 @@ deterministic for the same inputs (`rng` is accepted but unused).
 | `1.0` | Maximum expressiveness (4×, then clamp) |
 
 `BehaveResult` also includes `conflict_flag` (always `False` for now),
-`rigidity_indicator`, and `deviation_amount` from baseline.
+`rigidity_indicator`, `flexibility_factor`, and `deviation_amount` from baseline.
 
 ### Same situation, different personalities
 
@@ -530,7 +630,9 @@ src/animus/
   building_blocks.py
   data/               # packaged default building-blocks JSON
   data_pipeline/      # JSON building blocks (+ deprecated Excel loader)
-  personalities.py    # Phase-1 hand profiles (tests / reference)
+  designer.py         # library-relative [0, 1] scalar remap
+  envelope.py         # reference situations + behavioral envelopes
+  tools/              # export_character_cards CLI
 tools/building-blocks-editor/           # browser JSON editor
 tests/
 ```
@@ -539,9 +641,13 @@ tests/
 
 - Feel → Behave → Decay pipelines are implemented and covered by tests.
 - Building blocks are authored in JSON; the Excel pipeline is deprecated.
+- **Designer calibration (0.3):** `compute_scalar_bounds`, `designer_scalars`,
+  optional `apply_designer_scalars`, plus `compute_envelope` /
+  `character_card` for reference behavioral limits. `rigidity` now damps the
+  mood→behavior offset in `behave` (`flexibility = 1 − rigidity`). See
+  `docs/designer_calibration_revision.md` for the full roadmap.
 - `Stimulus.behavioral` tags are stored but **not** consumed yet.
 - `conflict_flag` / external social pressure is **not** implemented (`False`).
-- `rigidity` is returned on behave results but does not yet alter the pipeline.
 
 ## License
 

@@ -56,6 +56,30 @@ class TestJsonParser:
         with pytest.raises(ValueError, match="Unsupported JSON format"):
             parse_json(path)
 
+    def test_packaged_defaults_are_version_2(self):
+        import json
+        from animus.data import building_blocks_json_dict
+
+        assert building_blocks_json_dict()["version"] == 2
+
+    def test_version_1_still_parses(self, tmp_path):
+        import json
+        from animus.data import building_blocks_json_dict
+
+        data = building_blocks_json_dict()
+        data["version"] = 1
+        path = tmp_path / "v1.json"
+        path.write_text(json.dumps(data))
+        raw = parse_json(path)
+        assert "INTJ" not in raw.mbti_axes.poles["susceptibility"]  # poles keyed by letter
+        assert "T" in raw.mbti_axes.poles["susceptibility"]
+
+    def test_unsupported_version_rejected(self, tmp_path):
+        path = tmp_path / "v3.json"
+        path.write_text('{"version": 3, "format": "animus.building_blocks"}')
+        with pytest.raises(ValueError, match="Unsupported building-blocks version"):
+            parse_json(path)
+
 
 @pytest.mark.skip(reason="Excel authoring pipeline deprecated; JSON is canonical")
 class TestJsonExcelParity:

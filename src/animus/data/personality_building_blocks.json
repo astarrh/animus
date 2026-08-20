@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "format": "animus.building_blocks",
   "dimensions": {
     "behavioral": [
@@ -43,9 +43,9 @@
     "E": {
       "scalars": {
         "assertiveness": 0.55,
-        "susceptibility": 0.5,
-        "rigidity": 0.4,
-        "rumination": 0.35,
+        "susceptibility": 0.6,
+        "rigidity": 0.3,
+        "rumination": 0.25,
         "control": 0.1,
         "certainty": 0.05
       },
@@ -104,9 +104,9 @@
     "I": {
       "scalars": {
         "assertiveness": 0.35,
-        "susceptibility": 0.45,
-        "rigidity": 0.55,
-        "rumination": 0.6,
+        "susceptibility": 0.35,
+        "rigidity": 0.65,
+        "rumination": 0.7,
         "control": -0.05,
         "certainty": 0.0
       },
@@ -165,9 +165,9 @@
     "S": {
       "scalars": {
         "assertiveness": 0.4,
-        "susceptibility": 0.4,
-        "rigidity": 0.5,
-        "rumination": 0.4,
+        "susceptibility": 0.3,
+        "rigidity": 0.6,
+        "rumination": 0.3,
         "control": 0.05,
         "certainty": 0.15
       },
@@ -226,9 +226,9 @@
     "N": {
       "scalars": {
         "assertiveness": 0.5,
-        "susceptibility": 0.55,
-        "rigidity": 0.45,
-        "rumination": 0.55,
+        "susceptibility": 0.65,
+        "rigidity": 0.35,
+        "rumination": 0.65,
         "control": 0.05,
         "certainty": -0.1
       },
@@ -287,9 +287,9 @@
     "T": {
       "scalars": {
         "assertiveness": 0.6,
-        "susceptibility": 0.25,
-        "rigidity": 0.55,
-        "rumination": 0.3,
+        "susceptibility": 0.1,
+        "rigidity": 0.6,
+        "rumination": 0.2,
         "control": 0.15,
         "certainty": 0.1
       },
@@ -348,9 +348,9 @@
     "F": {
       "scalars": {
         "assertiveness": 0.45,
-        "susceptibility": 0.75,
-        "rigidity": 0.4,
-        "rumination": 0.65,
+        "susceptibility": 0.9,
+        "rigidity": 0.35,
+        "rumination": 0.8,
         "control": -0.05,
         "certainty": -0.05
       },
@@ -409,9 +409,9 @@
     "J": {
       "scalars": {
         "assertiveness": 0.55,
-        "susceptibility": 0.4,
-        "rigidity": 0.65,
-        "rumination": 0.5,
+        "susceptibility": 0.25,
+        "rigidity": 0.8,
+        "rumination": 0.55,
         "control": 0.1,
         "certainty": 0.15
       },
@@ -470,9 +470,9 @@
     "P": {
       "scalars": {
         "assertiveness": 0.35,
-        "susceptibility": 0.55,
-        "rigidity": 0.3,
-        "rumination": 0.45,
+        "susceptibility": 0.7,
+        "rigidity": 0.15,
+        "rumination": 0.4,
         "control": -0.05,
         "certainty": -0.1
       },
@@ -534,9 +534,9 @@
       "Fire": {
         "scalars": {
           "assertiveness": 0.6,
-          "susceptibility": 0.55,
-          "rigidity": 0.45,
-          "rumination": 0.35,
+          "susceptibility": 0.7,
+          "rigidity": 0.3,
+          "rumination": 0.2,
           "control": 0.15,
           "certainty": -0.05
         },
@@ -595,9 +595,9 @@
       "Earth": {
         "scalars": {
           "assertiveness": 0.45,
-          "susceptibility": 0.3,
-          "rigidity": 0.6,
-          "rumination": 0.5,
+          "susceptibility": 0.15,
+          "rigidity": 0.8,
+          "rumination": 0.6,
           "control": 0.1,
           "certainty": 0.15
         },
@@ -656,9 +656,9 @@
       "Air": {
         "scalars": {
           "assertiveness": 0.5,
-          "susceptibility": 0.35,
-          "rigidity": 0.35,
-          "rumination": 0.3,
+          "susceptibility": 0.25,
+          "rigidity": 0.2,
+          "rumination": 0.2,
           "control": 0.05,
           "certainty": -0.1
         },
@@ -717,9 +717,9 @@
       "Water": {
         "scalars": {
           "assertiveness": 0.4,
-          "susceptibility": 0.7,
-          "rigidity": 0.5,
-          "rumination": 0.65,
+          "susceptibility": 0.85,
+          "rigidity": 0.45,
+          "rumination": 0.8,
           "control": -0.1,
           "certainty": -0.1
         },
@@ -780,9 +780,9 @@
       "Cardinal": {
         "scalars": {
           "assertiveness": 0.55,
-          "susceptibility": 0.45,
-          "rigidity": 0.45,
-          "rumination": 0.4,
+          "susceptibility": 0.4,
+          "rigidity": 0.5,
+          "rumination": 0.35,
           "control": 0.1,
           "certainty": 0.05
         },
@@ -841,9 +841,9 @@
       "Fixed": {
         "scalars": {
           "assertiveness": 0.5,
-          "susceptibility": 0.5,
-          "rigidity": 0.7,
-          "rumination": 0.55,
+          "susceptibility": 0.45,
+          "rigidity": 0.85,
+          "rumination": 0.65,
           "control": 0.05,
           "certainty": 0.1
         },
@@ -902,9 +902,9 @@
       "Mutable": {
         "scalars": {
           "assertiveness": 0.4,
-          "susceptibility": 0.5,
-          "rigidity": 0.25,
-          "rumination": 0.45,
+          "susceptibility": 0.6,
+          "rigidity": 0.15,
+          "rumination": 0.4,
           "control": -0.05,
           "certainty": -0.1
         },
