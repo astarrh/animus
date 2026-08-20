@@ -1,5 +1,8 @@
 # Changelog
 
+Developer-facing 0.3 write-up (breaking changes, APIs, migration):
+[`docs/PATCH_NOTES_0.3.md`](docs/PATCH_NOTES_0.3.md).
+
 ## Unreleased
 
 ### Added
