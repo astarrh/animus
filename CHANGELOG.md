@@ -9,6 +9,11 @@
   `designer_scalars`, and opt-in `apply_designer_scalars`. Remaps raw assembly
   coefficients to library-relative `[0, 1]` for UI and threshold authoring
   without changing default pipeline output.
+- **Reference envelopes (Phase 2):** `animus.envelope` module with
+  `REFERENCE_SITUATIONS`, `compute_envelope`, `compute_all_envelopes`,
+  `character_card`, and `python -m animus.tools.export_character_cards`.
+  Authors can read per-profile behavioral min/max under a shipped severity
+  ladder (resting → mild irritation → moderate conflict → severe crisis).
 
 ### Changed
 

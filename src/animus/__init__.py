@@ -30,6 +30,15 @@ from animus.designer import (
     compute_scalar_bounds,
     designer_scalars,
 )
+from animus.envelope import (
+    AxisEnvelope,
+    BehavioralEnvelope,
+    REFERENCE_SITUATIONS,
+    ReferenceSituation,
+    character_card,
+    compute_all_envelopes,
+    compute_envelope,
+)
 
 __all__ = [
     # Core types
@@ -61,4 +70,12 @@ __all__ = [
     "apply_designer_scalars",
     "compute_scalar_bounds",
     "designer_scalars",
+    # Reference envelopes (0.3)
+    "AxisEnvelope",
+    "BehavioralEnvelope",
+    "REFERENCE_SITUATIONS",
+    "ReferenceSituation",
+    "character_card",
+    "compute_all_envelopes",
+    "compute_envelope",
 ]

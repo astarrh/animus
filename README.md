@@ -152,7 +152,7 @@ Assembly coefficients on `PersonalityProfile` are in nominal `[0, 1]` but **all
 |-------|--------|----------------------------|---------|
 | **Raw** | `profile.susceptibility`, `.rigidity`, `.rumination` | ~0.35–0.62 | Regression, building-block debugging, pipeline input |
 | **Designer** | `designer_scalars(profile, bounds)` | `[0, 1]` library-relative | UI labels, sorting, volatility formulas |
-| **Envelope** | Phase 2 (`character_card`) | behavioral axis min/max | Action thresholds under reference stress |
+| **Envelope** | `character_card` / `compute_envelope` | behavioral axis min/max | Action thresholds under reference stress |
 
 ```python
 from animus import compute_scalar_bounds, designer_scalars, generate_all_composites
@@ -180,6 +180,47 @@ Recompute `bounds` when you load a custom building-blocks JSON — bounds are
 new profile with remapped coefficients inside `feel` / `behave` / `decay`.
 Default is off; most games keep raw coefficients in the pipeline and use
 designer scalars only for display and thresholds.
+
+### Reference envelopes
+
+Designer scalars tell you *how reactive a pawn is relative to the library*.
+Envelopes tell you *how far that pawn can lean on each behavioral axis* under
+a shipped severity ladder, so you can author thresholds without playtesting
+every composite.
+
+Each probe runs the full **`feel` → `behave`** loop from `resting_mood`.
+
+| Name | Label | Situation (dc, fc, ib, sp, arousal) | Appraisal (control, certainty) | Intensity |
+|------|-------|--------------------------------------|--------------------------------|-----------|
+| `resting` | Baseline at equilibrium | (0, 0, 0, 0, 0) | (0, 0) | 0.0 |
+| `mild_irritation` | Everyday friction | (−0.25, 0.10, −0.20, 0.15, 0.35) | (0.25, −0.20) | 0.5 |
+| `moderate_conflict` | Clear interpersonal stress | (−0.50, −0.30, −0.40, −0.20, 0.60) | (−0.30, −0.30) | 0.5 |
+| `severe_crisis` | Breaking-point probe | (−0.80, −0.70, −0.60, −0.50, 0.90) | (−0.50, −0.60) | 1.0 |
+
+```python
+from animus import character_card, compute_envelope, compute_scalar_bounds
+
+envelope = compute_envelope(profile)
+# envelope.aggression_passivity.min / .max / .at_resting
+
+card = character_card(profile, bounds)
+# card["envelope"]["aggression_passivity"] → {min, max, at_resting}
+# card["designer_scalars"]["reactivity"] …
+
+agg = card["envelope"]["aggression_passivity"]
+if agg["max"] > 0.7:
+    # this composite can snap under the standard crisis probe
+    ...
+```
+
+Export all 192 packaged-default cards:
+
+```bash
+python -m animus.tools.export_character_cards --output cards.json
+```
+
+Games may pass a custom `situations=` tuple; bounds and envelopes should use
+the same composite set you actually spawn.
 
 ### How to interpret the scalars
 
@@ -576,7 +617,9 @@ src/animus/
   building_blocks.py
   data/               # packaged default building-blocks JSON
   data_pipeline/      # JSON building blocks (+ deprecated Excel loader)
-  personalities.py    # Phase-1 hand profiles (tests / reference)
+  designer.py         # library-relative [0, 1] scalar remap
+  envelope.py         # reference situations + behavioral envelopes
+  tools/              # export_character_cards CLI
 tools/building-blocks-editor/           # browser JSON editor
 tests/
 ```
@@ -585,9 +628,9 @@ tests/
 
 - Feel → Behave → Decay pipelines are implemented and covered by tests.
 - Building blocks are authored in JSON; the Excel pipeline is deprecated.
-- **Designer calibration (0.3):** `compute_scalar_bounds`, `designer_scalars`, and
-  optional `apply_designer_scalars` remap raw assembly coefficients to
-  library-relative `[0, 1]` for author tools. See
+- **Designer calibration (0.3):** `compute_scalar_bounds`, `designer_scalars`,
+  optional `apply_designer_scalars`, plus `compute_envelope` /
+  `character_card` for reference behavioral limits. See
   `docs/designer_calibration_revision.md` for the full roadmap.
 - `Stimulus.behavioral` tags are stored but **not** consumed yet.
 - `conflict_flag` / external social pressure is **not** implemented (`False`).

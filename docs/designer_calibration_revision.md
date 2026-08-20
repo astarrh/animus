@@ -323,9 +323,9 @@ Not blocking 0.3.0 API ship.
 
 ### 7.5 Acceptance criteria
 
-- [ ] Author can read `character_card(composites[("ESTP", "Aries")])` and know aggression range under standard stress.
-- [ ] Reference situations documented in README with plain-language labels.
-- [ ] Envelope computation uses feel → behave full loop.
+- [x] Author can read `character_card(composites[("ESTP", "Aries")])` and know aggression range under standard stress.
+- [x] Reference situations documented in README with plain-language labels.
+- [x] Envelope computation uses feel → behave full loop.
 
 ---
 
